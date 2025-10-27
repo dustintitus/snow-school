@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Register New User{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Register New User</h2>
+        <form method="POST" action="{{ url_for('register') }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="full_name">Full Name</label>
+                <input type="text" id="full_name" name="full_name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <label for="user_type">User Type</label>
+                <select id="user_type" name="user_type" required onchange="toggleStudentFields()">
+                    <option value="admin">Admin</option>
+                    <option value="instructor">Instructor</option>
+                    <option value="student">Student</option>
+                </select>
+            </div>
+            <input type="hidden" id="instructor_id" name="instructor_id" value="">
+            <div class="form-group" id="team_group" style="display: none;">
+                <label for="team_id">Assign to Team</label>
+                <select id="team_id" name="team_id" onchange="updateInstructorFromTeam()">
+                    <option value="">Select Team</option>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" data-instructor="{{ team.instructor_id }}">
+                        {{ team.name }} ({{ team.program.name }}) - {{ team.instructor.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" id="sport_group" style="display: none;">
+                <label>Sports Participation</label>
+                <div style="margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="participates_skier" name="participates_skier">
+                    <label for="participates_skier" style="display: inline; margin-left: 0.5rem;">Skiing (STEP Program - CSIA)</label>
+                </div>
+                <div style="margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="participates_snowboarder" name="participates_snowboarder">
+                    <label for="participates_snowboarder" style="display: inline; margin-left: 0.5rem;">Snowboarding (RIP Program - CASI)</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="participates_snow_stars" name="participates_snow_stars">
+                    <label for="participates_snow_stars" style="display: inline; margin-left: 0.5rem;">Racing - Snow Stars (ACA)</label>
+                </div>
+                <small style="color: var(--text-secondary);">Select at least one sport the athlete participates in</small>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Create User</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-block">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleStudentFields() {
+    const userType = document.getElementById('user_type').value;
+    const teamGroup = document.getElementById('team_group');
+    const sportGroup = document.getElementById('sport_group');
+    if (userType === 'student') {
+        teamGroup.style.display = 'block';
+        sportGroup.style.display = 'block';
+    } else {
+        teamGroup.style.display = 'none';
+        sportGroup.style.display = 'none';
+    }
+}
+
+function updateInstructorFromTeam() {
+    const teamSelect = document.getElementById('team_id');
+    const instructorInput = document.getElementById('instructor_id');
+    const selectedOption = teamSelect.options[teamSelect.selectedIndex];
+    
+    if (selectedOption.value) {
+        instructorInput.value = selectedOption.getAttribute('data-instructor');
+    } else {
+        instructorInput.value = '';
+    }
+}
+</script>
+{% endblock %}

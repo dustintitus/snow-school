@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}View Evaluation{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Evaluation Details</h2>
+    
+    <div class="evaluation-info">
+        <div class="info-row">
+            <strong>Student:</strong> {{ evaluation.student.full_name }}
+        </div>
+        <div class="info-row">
+            <strong>Instructor:</strong> {{ evaluation.instructor.full_name }}
+        </div>
+        <div class="info-row">
+            <strong>Level:</strong> 
+            {% if evaluation.sport_type == 'skier' %}
+            STEP Level {{ evaluation.level }}
+            {% elif evaluation.sport_type == 'snowboarder' %}
+            RIP Level {{ evaluation.level }}
+            {% elif evaluation.sport_type == 'snow_stars' %}
+            Racing (Snow Stars) Level {{ evaluation.level }}
+            {% endif %}
+        </div>
+        <div class="info-row">
+            <strong>Date:</strong> {{ evaluation.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </div>
+    </div>
+
+    <div class="scores-grid">
+        <div class="score-card">
+            <h3>Skills</h3>
+            <div class="score-value">{{ evaluation.skills_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Attitude</h3>
+            <div class="score-value">{{ evaluation.attitude_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Performance</h3>
+            <div class="score-value">{{ evaluation.performance_score }}/10</div>
+        </div>
+        <div class="score-card highlight">
+            <h3>Overall Average</h3>
+            <div class="score-value">{{ evaluation.average_score }}/10</div>
+        </div>
+    </div>
+
+    {% if evaluation.sport_type == 'skier' and evaluation.technical_score is not none %}
+    <h3>STEP Program Evaluation (CSIA)</h3>
+    <div class="scores-grid">
+        <div class="score-card">
+            <h3>Technical Skills</h3>
+            <div class="score-value">{{ evaluation.technical_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Edging</h3>
+            <div class="score-value">{{ evaluation.edging_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Pressure Control</h3>
+            <div class="score-value">{{ evaluation.pressure_control_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Turn Shape</h3>
+            <div class="score-value">{{ evaluation.turn_shape_score }}/10</div>
+        </div>
+    </div>
+    <div class="program-average">
+        <strong>STEP Program Average:</strong> {{ evaluation.step_average_score }}/10
+    </div>
+    {% elif evaluation.sport_type == 'snowboarder' and evaluation.board_control_score is not none %}
+    <h3>RIP Program Evaluation (CASI)</h3>
+    <div class="scores-grid">
+        <div class="score-card">
+            <h3>Board Control</h3>
+            <div class="score-value">{{ evaluation.board_control_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Edge Awareness</h3>
+            <div class="score-value">{{ evaluation.edge_awareness_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Body Positioning</h3>
+            <div class="score-value">{{ evaluation.body_positioning_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Turn Control</h3>
+            <div class="score-value">{{ evaluation.turn_control_score }}/10</div>
+        </div>
+    </div>
+    <div class="program-average">
+        <strong>RIP Program Average:</strong> {{ evaluation.rip_average_score }}/10
+    </div>
+    {% elif evaluation.sport_type == 'snow_stars' and evaluation.movement_quality_score is not none %}
+    <h3>Racing (Snow Stars) Program Evaluation (ACA)</h3>
+    <div class="scores-grid">
+        <div class="score-card">
+            <h3>Movement Quality</h3>
+            <div class="score-value">{{ evaluation.movement_quality_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Balance</h3>
+            <div class="score-value">{{ evaluation.balance_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Control</h3>
+            <div class="score-value">{{ evaluation.control_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Awareness</h3>
+            <div class="score-value">{{ evaluation.awareness_score }}/10</div>
+        </div>
+    </div>
+    <div class="program-average">
+        <strong>Snow Stars Program Average:</strong> {{ evaluation.snow_stars_average_score }}/10
+    </div>
+    {% endif %}
+
+    {% if evaluation.comments %}
+    <div class="comments-section">
+        <h3>Comments</h3>
+        <p>{{ evaluation.comments }}</p>
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

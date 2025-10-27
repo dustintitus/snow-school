@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Snow School{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='img/horseshoe-logo.png') }}" alt="Horseshoe Valley Resort" class="logo-img" onerror="this.style.display='none'; document.querySelector('.logo-text').style.display='block';">
+                <h1 class="logo logo-text">Snow School</h1>
+            </div>
+            <ul class="nav-links">
+                {% if current_user.is_authenticated %}
+                    <li><span class="user-info">{{ current_user.full_name }} ({{ current_user.user_type }})</span></li>
+                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

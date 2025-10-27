@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Instructor Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Instructor Dashboard</h2>
+</div>
+
+{% if teams %}
+<div class="card">
+    <h3>My Classes & Teams</h3>
+    {% for team in teams %}
+    <div style="padding: 1rem; margin-bottom: 0.5rem; background: var(--bg-light); border-radius: 0.5rem;">
+        <strong>{{ team.name }}</strong> 
+        <span class="badge badge-{{ team.team_type }}">{{ team.team_type }}</span>
+        - {{ team.program.name }}
+        <br><span style="color: var(--text-secondary); font-size: 0.9rem;">{{ team.students|length }} students</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>{{ students|length }}</h3>
+        <p>My Students</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ evaluations|length }}</h3>
+        <p>Recent Evaluations</p>
+    </div>
+</div>
+
+<div class="card">
+    <h3>My Students</h3>
+    {% if students %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Class/Team</th>
+                <th>Sport Type</th>
+                <th>Current Level</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            {% set evaluations = student.evaluations_received|selectattr('sport_type', 'equalto', student.sport_type)|list %}
+            {% set highest_level = evaluations|map(attribute='level')|list|max if evaluations else 0 %}
+            <tr>
+                <td>{{ student.full_name }}</td>
+                <td>{{ student.email }}</td>
+                <td>
+                    {{ student.team.name if student.team else 'Not assigned' }}
+                    {% if student.team %}
+                        <span class="badge badge-{{ student.team.team_type }}">{{ student.team.team_type }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if student.participates_skier %}
+                    <span class="badge badge-sport badge-skier">Skiing</span>
+                    {% endif %}
+                    {% if student.participates_snowboarder %}
+                    <span class="badge badge-sport badge-snowboarder">Snowboarding</span>
+                    {% endif %}
+                    {% if student.participates_snow_stars %}
+                    <span class="badge badge-sport" style="background-color: #fef3c7; color: #854d0e;">Racing</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if highest_level > 0 %}
+                        {% if student.participates_skier %}{{ 'Skiing' }} - STEP {{ highest_level }}{% endif %}
+                        {% if student.participates_snowboarder %}{% if student.participates_skier %}, {% endif %}Snowboarding - RIP {{ highest_level }}{% endif %}
+                        {% if student.participates_snow_stars %}{% if student.participates_skier or student.participates_snowboarder %}, {% endif %}Racing - Snow Stars {{ highest_level }}{% endif %}
+                    {% else %}
+                        <span style="color: var(--text-secondary);">Not started</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('evaluate_student', student_id=student.id) }}" class="btn btn-sm btn-primary">Evaluate</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No students assigned to you yet.</p>
+    {% endif %}
+</div>
+
+{% if evaluations %}
+<div class="card">
+    <h3>Recent Evaluations</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Level</th>
+                <th>Average Score</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for eval in evaluations %}
+            <tr>
+                <td>{{ eval.student.full_name }}</td>
+                <td>
+                    {% if eval.sport_type == 'skier' %}
+                    STEP {{ eval.level }}
+                    {% elif eval.sport_type == 'snowboarder' %}
+                    RIP {{ eval.level }}
+                    {% elif eval.sport_type == 'snow_stars' %}
+                    Racing (Snow Stars) {{ eval.level }}
+                    {% endif %}
+                </td>
+                <td>{{ eval.average_score }}/10</td>
+                <td>{{ eval.created_at.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    <a href="{{ url_for('view_evaluation', evaluation_id=eval.id) }}" class="btn btn-sm btn-secondary">View</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
+

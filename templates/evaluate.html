@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluate Student{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Evaluate Student: {{ student.full_name }}</h2>
+        {% if not student.participates_skier and not student.participates_snowboarder %}
+        <div class="alert alert-error">
+            <p><strong>Error:</strong> This student has no sports assigned. Please update student profile before evaluating.</p>
+        </div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-block">Back to Dashboard</a>
+        {% else %}
+        
+        <form method="POST" action="{{ url_for('evaluate_student', student_id=student.id) }}" id="evaluationForm">
+            <div class="form-group">
+                <label style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: block;">Select Sport for Evaluation</label>
+                <div class="sport-selection-grid">
+                    {% if student.participates_skier %}
+                    <label for="sport_skier" class="sport-card" onclick="selectSport('skier')">
+                        <input type="radio" id="sport_skier" name="sport_type" value="skier" required onchange="updateEvaluationForm('skier')">
+                        <div class="sport-card-content">
+                            <div class="sport-icon">🎿</div>
+                            <div class="sport-title">Skiing</div>
+                            <div class="sport-subtitle">STEP Program (CSIA)</div>
+                        </div>
+                    </label>
+                    {% endif %}
+                    {% if student.participates_snowboarder %}
+                    <label for="sport_snowboarder" class="sport-card" onclick="selectSport('snowboarder')">
+                        <input type="radio" id="sport_snowboarder" name="sport_type" value="snowboarder" required onchange="updateEvaluationForm('snowboarder')">
+                        <div class="sport-card-content">
+                            <div class="sport-icon">🏂</div>
+                            <div class="sport-title">Snowboarding</div>
+                            <div class="sport-subtitle">RIP Program (CASI)</div>
+                        </div>
+                    </label>
+                    {% endif %}
+                    {% if student.participates_snow_stars %}
+                    <label for="sport_snow_stars" class="sport-card" onclick="selectSport('snow_stars')">
+                        <input type="radio" id="sport_snow_stars" name="sport_type" value="snow_stars" required onchange="updateEvaluationForm('snow_stars')">
+                        <div class="sport-card-content">
+                            <div class="sport-icon">🏁</div>
+                            <div class="sport-title">Racing</div>
+                            <div class="sport-subtitle">Snow Stars (ACA)</div>
+                        </div>
+                    </label>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div id="level-section" style="margin-top: 2rem;">
+                <div class="form-group">
+                    <label for="level">Level</label>
+                    <p id="completed-levels-info" class="completed-levels" style="display: none; margin-bottom: 0.75rem;"></p>
+                    <select id="level" name="level" required>
+                        <option value="">First select a sport</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+                <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">Overall Assessment</h3>
+                <div class="form-group">
+                    <label for="skills_score">Skills Score (0-10)</label>
+                    <input type="number" id="skills_score" name="skills_score" min="0" max="10" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label for="attitude_score">Attitude Score (0-10)</label>
+                    <input type="number" id="attitude_score" name="attitude_score" min="0" max="10" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label for="performance_score">Performance Score (0-10)</label>
+                    <input type="number" id="performance_score" name="performance_score" min="0" max="10" step="0.1" required>
+                </div>
+            </div>
+            
+            <div id="sport-criteria" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+                <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">Select a sport to see evaluation criteria</p>
+            </div>
+            
+            <div class="form-group" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+                <label for="comments">Additional Comments</label>
+                <textarea id="comments" name="comments" rows="4" placeholder="Enter your feedback and notes about the student's performance..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Submit Evaluation</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-block">Cancel</a>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+const completedLevelsSkier = {{ completed_levels_skier|tojson }};
+const completedLevelsSnowboarder = {{ completed_levels_snowboarder|tojson }};
+const completedLevelsSnowStars = {{ completed_levels_snow_stars|tojson }};
+
+function selectSport(sportType) {
+    // Update radio button
+    document.getElementById('sport_' + sportType).checked = true;
+    updateEvaluationForm(sportType);
+}
+
+function updateEvaluationForm(selectedSport) {
+    // Update level dropdown
+    const levelSelect = document.getElementById('level');
+    levelSelect.innerHTML = '<option value="">Select Level</option>';
+    
+    let maxLevel = selectedSport === 'skier' ? 8 : 6;
+    let completedLevels;
+    if (selectedSport === 'skier') {
+        completedLevels = completedLevelsSkier;
+    } else if (selectedSport === 'snowboarder') {
+        completedLevels = completedLevelsSnowboarder;
+    } else if (selectedSport === 'snow_stars') {
+        completedLevels = completedLevelsSnowStars;
+    }
+    
+    for (let i = 1; i <= maxLevel; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `Level ${i}${completedLevels.includes(i) ? ' (Completed)' : ''}`;
+        if (completedLevels.includes(i)) {
+            option.disabled = true;
+        }
+        levelSelect.appendChild(option);
+    }
+    
+    // Update completed levels info
+    const infoP = document.getElementById('completed-levels-info');
+    if (completedLevels.length > 0) {
+        infoP.textContent = `Completed Levels: ${completedLevels.join(', ')}`;
+        infoP.style.display = 'block';
+    } else {
+        infoP.style.display = 'none';
+    }
+    
+    // Update criteria section
+    updateCriteriaSection(selectedSport);
+}
+
+function updateCriteriaSection(selectedSport) {
+    const criteriaDiv = document.getElementById('sport-criteria');
+    
+    if (selectedSport === 'skier') {
+        criteriaDiv.innerHTML = `
+            <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">STEP Program Criteria (CSIA)</h3>
+            <div style="background: var(--bg-light); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; border-left: 3px solid var(--primary-color);">
+                <strong>Type:</strong> Class
+            </div>
+            <div class="form-group">
+                <label for="technical_score">Technical Skills (0-10)</label>
+                <input type="number" id="technical_score" name="technical_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="edging_score">Edging (0-10)</label>
+                <input type="number" id="edging_score" name="edging_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="pressure_control_score">Pressure Control (0-10)</label>
+                <input type="number" id="pressure_control_score" name="pressure_control_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="turn_shape_score">Turn Shape (0-10)</label>
+                <input type="number" id="turn_shape_score" name="turn_shape_score" min="0" max="10" step="0.1" required>
+            </div>
+        `;
+    } else     if (selectedSport === 'snowboarder') {
+        criteriaDiv.innerHTML = `
+            <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">RIP Program Criteria (CASI)</h3>
+            <div style="background: var(--bg-light); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; border-left: 3px solid var(--primary-color);">
+                <strong>Type:</strong> Class
+            </div>
+            <div class="form-group">
+                <label for="board_control_score">Board Control (0-10)</label>
+                <input type="number" id="board_control_score" name="board_control_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="edge_awareness_score">Edge Awareness (0-10)</label>
+                <input type="number" id="edge_awareness_score" name="edge_awareness_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="body_positioning_score">Body Positioning (0-10)</label>
+                <input type="number" id="body_positioning_score" name="body_positioning_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="turn_control_score">Turn Control (0-10)</label>
+                <input type="number" id="turn_control_score" name="turn_control_score" min="0" max="10" step="0.1" required>
+            </div>
+        `;
+    } else if (selectedSport === 'snow_stars') {
+        criteriaDiv.innerHTML = `
+            <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">Snow Stars Program Criteria (ACA)</h3>
+            <div style="background: var(--bg-light); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; border-left: 3px solid var(--accent-color);">
+                <strong>Type:</strong> Team
+            </div>
+            <div class="form-group">
+                <label for="movement_quality_score">Movement Quality (0-10)</label>
+                <input type="number" id="movement_quality_score" name="movement_quality_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="balance_score">Balance (0-10)</label>
+                <input type="number" id="balance_score" name="balance_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="control_score">Control (0-10)</label>
+                <input type="number" id="control_score" name="control_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="awareness_score">Awareness (0-10)</label>
+                <input type="number" id="awareness_score" name="awareness_score" min="0" max="10" step="0.1" required>
+            </div>
+        `;
+    } else {
+        criteriaDiv.innerHTML = '<p style="color: var(--text-secondary);">Select a sport to see evaluation criteria</p>';
+    }
+}
+</script>
+{% endblock %}

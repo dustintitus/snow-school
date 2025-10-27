@@ -1,0 +1,42 @@
+SNOW SCHOOL - QUICK START
+==========================
+
+To run the application:
+
+1. Navigate to the application directory:
+   cd /Users/dustintitus/athlete_evaluation_app
+
+2. Run the Flask application:
+   python3 app.py
+
+3. Open your browser and go to:
+   http://localhost:5001
+
+4. Login with one of these sample accounts:
+
+   ADMIN:
+   Username: admin
+   Password: admin123
+
+   INSTRUCTOR:
+   Username: instructor1
+   Password: instructor123
+
+   STUDENT (Skier - STEP Program):
+   Username: student1
+   Password: student123
+
+FEATURES:
+=========
+✓ Three user types: Admin, Instructor, Student
+✓ Dual sport support: Skiers (STEP program) and Snowboarders (RIP program)
+✓ Level-based evaluation:
+  - Skiers: STEP levels 1-8 (Technical, Edging, Pressure Control, Turn Shape - CSIA)
+  - Snowboarders: RIP levels 1-6 (Board Control, Edge Awareness, Body Positioning, Turn Control - CASI)
+✓ Instructor can evaluate students on skills, attitude, and performance
+✓ Students can view their evaluations with sport-specific scores
+✓ Admins can manage all users and assign sport types
+✓ Beautiful modern UI
+✓ SQLite database for data persistence
+
+To stop the application, press Ctrl+C in the terminal.
