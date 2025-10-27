@@ -1,13 +1,16 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Evaluation, Program, Team
 from datetime import datetime
+from config import config
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-change-in-production'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///athlete_evaluation.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Load configuration from environment
+env = os.environ.get('FLASK_ENV', 'development')
+app.config.from_object(config.get(env, config['development']))
 
 db.init_app(app)
 login_manager = LoginManager()
@@ -454,4 +457,11 @@ def delete_team(team_id):
 if __name__ == '__main__':
     with app.app_context():
         init_db()
-    app.run(debug=True, port=5001)
+    
+    # Production vs Development server
+    if os.environ.get('FLASK_ENV') == 'production':
+        # Use gunicorn in production
+        app.run(host='0.0.0.0', port=5000, debug=False)
+    else:
+        # Development server
+        app.run(debug=True, host='0.0.0.0', port=5001)

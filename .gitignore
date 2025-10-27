@@ -16,6 +16,11 @@ build/
 # Database
 instance/*.db
 *.sqlite
+*.db
+
+# Environment
+.env
+.env.local
 
 # Logs
 *.log
