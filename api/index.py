@@ -1,27 +1,25 @@
 """
-Vercel serverless function entry point
-This file is required by Vercel to properly handle Flask applications
+Vercel serverless function entry point for Flask
 """
 import sys
-import os
 from pathlib import Path
 
-# Add parent directory to path
+# Add parent directory to path so we can import app
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Set production environment
-os.environ['FLASK_ENV'] = 'production'
+from werkzeug.wrappers import Request, Response
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-from app import app, db
+# Import the Flask app
+from app import app as flask_app
 
-# Ensure tables are created when the function starts
-try:
-    with app.app_context():
-        db.create_all()
-except Exception as e:
-    print(f"Warning: Could not create database tables: {e}")
+# Add proxy fix for Vercel
+app = ProxyFix(flask_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
-# Export the app for Vercel
-# Vercel will automatically handle WSGI
-handler = app
+def handler(request):
+    """Vercel serverless handler"""
+    return Response.from_app(app, request.environ, buffered=True)
+
+# Export for Vercel
+__all__ = ['handler']
 
