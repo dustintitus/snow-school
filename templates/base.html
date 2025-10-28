@@ -12,7 +12,7 @@
         <div class="container">
             <div class="logo-container">
                 <img src="{{ url_for('static', filename='img/horseshoe-logo.png') }}" alt="Horseshoe Valley Resort" class="logo-img" onerror="this.style.display='none'; document.querySelector('.logo-text').style.display='block';">
-                <h1 class="logo logo-text">Snow School</h1>
+                <h1 class="logo logo-text" style="display: block !important;">Snow School</h1>
             </div>
             <ul class="nav-links">
                 {% if current_user.is_authenticated %}
