@@ -24,8 +24,7 @@ def load_user(user_id):
 def init_db():
     """Initialize database with sample data"""
     with app.app_context():
-        # Drop all tables and recreate them to handle schema changes
-        db.drop_all()
+        # Only create tables if they don't exist (production-safe)
         db.create_all()
         
         # Create admin
@@ -454,14 +453,13 @@ def delete_team(team_id):
     flash('Team deleted successfully', 'success')
     return redirect(url_for('manage_teams'))
 
+# Vercel serverless function entry point
+def handler(request):
+    return app(request.environ, request.start_response)
+
 if __name__ == '__main__':
     with app.app_context():
         init_db()
     
-    # Production vs Development server
-    if os.environ.get('FLASK_ENV') == 'production':
-        # Use gunicorn in production
-        app.run(host='0.0.0.0', port=5000, debug=False)
-    else:
-        # Development server
-        app.run(debug=True, host='0.0.0.0', port=5001)
+    # Development server
+    app.run(debug=True, host='0.0.0.0', port=5001)

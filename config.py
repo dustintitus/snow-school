@@ -5,6 +5,9 @@ class Config:
     """Base configuration"""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Vercel-compatible database configuration
+    # Use environment variable for production database
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///athlete_evaluation.db'
     
 class DevelopmentConfig(Config):
@@ -15,9 +18,11 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
-    # Database URL will be set via environment variable
-    # For production, use: postgresql://user:pass@localhost/snowschool
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///athlete_evaluation.db')
+    
+    # For Vercel/Serverless, use PostgreSQL or compatible database
+    # Vercel Postgres: DATABASE_URL from environment
+    # Neon, Supabase, PlanetScale are also good options
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_PRISMA_URL') or 'sqlite:///athlete_evaluation.db'
     
     # Security settings
     SESSION_COOKIE_SECURE = True  # Only send cookies over HTTPS
