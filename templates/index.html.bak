@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero">
+    <h1>Welcome to Snow School</h1>
+    <p>Horseshoe Valley Resort's comprehensive platform for ski and snowboard instructors to evaluate and track student progress.</p>
+    <div class="features">
+        <div class="feature-card">
+            <h3>��‍🏫 For Instructors</h3>
+            <p>Evaluate your students' performance, track progress, and provide feedback.</p>
+        </div>
+        <div class="feature-card">
+            <h3>For Students</h3>
+            <p>View your evaluations, track your progress, and see feedback from coaches.</p>
+        </div>
+        <div class="feature-card">
+            <h3>For Admins</h3>
+            <p>Manage users, instructors, and students across the platform.</p>
+        </div>
+    </div>
+    <a href="{{ url_for('login') }}" class="btn btn-primary">Get Started</a>
+</div>
+
+<div class="sample-accounts">
+    <h2>Sample Accounts</h2>
+    <div class="account-cards">
+        <div class="account-card">
+            <strong>Admin</strong><br>
+            Username: admin<br>
+            Password: admin123
+        </div>
+        <div class="account-card">
+            <strong>Instructor</strong><br>
+            Username: instructor1<br>
+            Password: instructor123
+        </div>
+        <div class="account-card">
+            <strong>Student</strong><br>
+            Username: student1<br>
+            Password: student123
+        </div>
+    </div>
+</div>
+{% endblock %}

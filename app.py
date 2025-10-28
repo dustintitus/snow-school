@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Evaluation, Program, Team
+from models import db, User, Evaluation, Program, Team, Attendance
 from datetime import datetime
 from config import config
 
@@ -38,21 +38,24 @@ def init_db():
             )
             db.session.add(admin)
         
-        # Create Horseshoe Valley Programs
+        # Create Horseshoe Valley Programs with frequency settings
         programs_data = [
-            ('Snowflakes', 'Early learning program for young beginners'),
-            ('High Flyers', 'Advanced program for developing competitive skiers'),
-            ('Trail Blazers', 'Multi-level program for progressive skill development'),
-            ('LIT', 'Leader in Training program for aspiring instructors'),
-            ('Adult', 'Program designed for adult skiers and snowboarders'),
-            ('Terrain Park', 'Specialized program for terrain park and freestyle development')
+            ('Snowflakes', 'Early learning program for young beginners', 'weekly', 8, 'saturday'),
+            ('High Flyers', 'Advanced program for developing competitive skiers', 'daily', 8, None),
+            ('Trail Blazers', 'Multi-level program for progressive skill development', 'weekly', 6, 'sunday'),
+            ('LIT', 'Leader in Training program for aspiring instructors', 'daily', 10, None),
+            ('Adult', 'Program designed for adult skiers and snowboarders', 'weekly', 4, 'saturday'),
+            ('Terrain Park', 'Specialized program for terrain park and freestyle development', 'daily', 6, None)
         ]
         
-        for program_name, description in programs_data:
+        for program_name, description, freq_type, freq_value, freq_days in programs_data:
             if not Program.query.filter_by(name=program_name).first():
                 program = Program(
                     name=program_name,
-                    description=description
+                    description=description,
+                    frequency_type=freq_type,
+                    frequency_value=freq_value,
+                    frequency_days=freq_days
                 )
                 db.session.add(program)
         
@@ -454,6 +457,77 @@ def delete_team(team_id):
     return redirect(url_for('manage_teams'))
 
 # Note: Database initialization is handled in api/index.py for Vercel
+
+@app.route('/attendance/<int:team_id>')
+@login_required
+def manage_attendance(team_id):
+    """Manage attendance for a team"""
+    if current_user.user_type not in ['admin', 'instructor']:
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    
+    team = Team.query.get_or_404(team_id)
+    
+    # Check if instructor has access to this team
+    if current_user.user_type == 'instructor' and team.instructor_id != current_user.id:
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    
+    # Get students in this team
+    students = User.query.filter_by(team_id=team_id, user_type='student').all()
+    
+    # Get recent attendance records
+    attendance_records = Attendance.query.filter_by(team_id=team_id).order_by(Attendance.session_date.desc()).limit(50).all()
+    
+    return render_template('attendance.html', team=team, students=students, attendance_records=attendance_records)
+
+@app.route('/attendance/<int:team_id>/record', methods=['POST'])
+@login_required
+def record_attendance(team_id):
+    """Record attendance for a team session"""
+    if current_user.user_type not in ['admin', 'instructor']:
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    
+    team = Team.query.get_or_404(team_id)
+    
+    # Check if instructor has access to this team
+    if current_user.user_type == 'instructor' and team.instructor_id != current_user.id:
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    
+    session_date = datetime.strptime(request.form.get('session_date'), '%Y-%m-%d').date()
+    
+    # Record attendance for each student
+    for student in team.students:
+        attended = request.form.get(f'attended_{student.id}') == 'on'
+        notes = request.form.get(f'notes_{student.id}', '')
+        
+        # Check if attendance already exists for this date
+        existing = Attendance.query.filter_by(
+            student_id=student.id,
+            team_id=team_id,
+            session_date=session_date
+        ).first()
+        
+        if existing:
+            existing.attended = attended
+            existing.notes = notes
+            existing.recorded_by = current_user.id
+        else:
+            attendance = Attendance(
+                student_id=student.id,
+                team_id=team_id,
+                session_date=session_date,
+                attended=attended,
+                notes=notes,
+                recorded_by=current_user.id
+            )
+            db.session.add(attendance)
+    
+    db.session.commit()
+    flash('Attendance recorded successfully', 'success')
+    return redirect(url_for('manage_attendance', team_id=team_id))
 
 if __name__ == '__main__':
     with app.app_context():

@@ -81,6 +81,7 @@
                 </td>
                 <td>
                     <a href="{{ url_for('evaluate_student', student_id=student.id) }}" class="btn btn-sm btn-primary">Evaluate</a>
+                    <a href="{{ url_for('manage_attendance', team_id=student.team_id) }}" class="btn btn-sm btn-secondary">Attendance</a>
                 </td>
             </tr>
             {% endfor %}

@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="attendance-container">
+    <div class="attendance-header">
+        <h2>Attendance Management</h2>
+        <div class="team-info">
+            <h3>{{ team.name }}</h3>
+            <p><strong>Program:</strong> {{ team.program.name }}</p>
+            <p><strong>Frequency:</strong> {{ team.program.frequency_type.title() }} - {{ team.program.frequency_value }} sessions
+                {% if team.program.frequency_days %}
+                    ({{ team.program.frequency_days.title() }}s)
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="attendance-form-section">
+        <h3>Record Attendance</h3>
+        <form method="POST" action="{{ url_for('record_attendance', team_id=team.id) }}" class="attendance-form">
+            <div class="form-group">
+                <label for="session_date">Session Date</label>
+                <input type="date" id="session_date" name="session_date" required>
+            </div>
+            
+            <div class="students-list">
+                <h4>Students</h4>
+                {% for student in students %}
+                <div class="student-attendance-row">
+                    <div class="student-info">
+                        <strong>{{ student.full_name }}</strong>
+                        <span class="student-username">({{ student.username }})</span>
+                    </div>
+                    <div class="attendance-controls">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="attended_{{ student.id }}" checked>
+                            <span class="checkmark">Present</span>
+                        </label>
+                        <input type="text" name="notes_{{ student.id }}" placeholder="Notes (optional)" class="notes-input">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Record Attendance</button>
+        </form>
+    </div>
+
+    <div class="attendance-history">
+        <h3>Recent Attendance Records</h3>
+        {% if attendance_records %}
+        <div class="attendance-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Student</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                        <th>Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in attendance_records %}
+                    <tr>
+                        <td>{{ record.session_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ record.student.full_name }}</td>
+                        <td>
+                            <span class="status-badge {{ 'present' if record.attended else 'absent' }}">
+                                {{ 'Present' if record.attended else 'Absent' }}
+                            </span>
+                        </td>
+                        <td>{{ record.notes or '-' }}</td>
+                        <td>{{ record.recorder.full_name }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-records">No attendance records yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="attendance-actions">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<style>
+.attendance-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.attendance-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.team-info {
+    background: var(--bg-light);
+    padding: 1rem;
+    border-radius: var(--radius);
+    margin-top: 1rem;
+}
+
+.attendance-form-section {
+    background: var(--bg-white);
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.students-list {
+    margin-top: 1.5rem;
+}
+
+.student-attendance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    margin-bottom: 0.5rem;
+    background: var(--bg-light);
+}
+
+.student-info {
+    flex: 1;
+}
+
+.student-username {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.attendance-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin-right: 0.5rem;
+    transform: scale(1.2);
+}
+
+.notes-input {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    width: 200px;
+}
+
+.attendance-history {
+    background: var(--bg-white);
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+
+.attendance-table {
+    overflow-x: auto;
+}
+
+.attendance-table table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.attendance-table th,
+.attendance-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.attendance-table th {
+    background: var(--bg-light);
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-badge.present {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.absent {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.no-records {
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: 2rem;
+}
+
+.attendance-actions {
+    text-align: center;
+}
+</style>
+{% endblock %}

@@ -7,6 +7,11 @@ class Program(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
+    # Attendance frequency settings
+    frequency_type = db.Column(db.String(20), nullable=False, default='daily')  # 'daily', 'weekly', 'custom'
+    frequency_value = db.Column(db.Integer, nullable=False, default=8)  # Number of sessions
+    frequency_days = db.Column(db.String(50), nullable=True)  # For weekly: 'saturday', 'sunday', etc. For custom: comma-separated days
+    start_date = db.Column(db.Date, nullable=True)  # Program start date
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     
     teams = db.relationship('Team', backref='program', lazy=True)
@@ -46,6 +51,23 @@ class User(UserMixin, db.Model):
     
     def __repr__(self):
         return f'<User {self.username}>'
+
+class Attendance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    session_date = db.Column(db.Date, nullable=False)
+    attended = db.Column(db.Boolean, default=True)
+    notes = db.Column(db.Text, nullable=True)
+    recorded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Instructor who recorded
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
+    student = db.relationship('User', foreign_keys=[student_id], backref='attendance_records')
+    team = db.relationship('Team', backref='attendance_records')
+    recorder = db.relationship('User', foreign_keys=[recorded_by], backref='recorded_attendance')
+    
+    def __repr__(self):
+        return f'<Attendance {self.student.username} - {self.session_date}>'
 
 class Evaluation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
