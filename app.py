@@ -453,10 +453,6 @@ def delete_team(team_id):
     flash('Team deleted successfully', 'success')
     return redirect(url_for('manage_teams'))
 
-# Vercel serverless function entry point
-def handler(request):
-    return app(request.environ, request.start_response)
-
 if __name__ == '__main__':
     with app.app_context():
         init_db()
