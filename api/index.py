@@ -1,19 +1,19 @@
 """
-Vercel serverless function entry point
+Vercel serverless function entry point in api/ directory
 """
 import sys
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Set FLASK_ENV before importing app
+# Set environment
 if 'FLASK_ENV' not in os.environ:
     os.environ['FLASK_ENV'] = 'production'
 
-# Import Flask app - Vercel expects 'app' variable
+# Import the Flask app
 from app import app
 
-# Vercel's Python runtime expects 'app' to be the Flask application
-# This will be detected automatically by Vercel's @vercel/python handler
+# Export the app for Vercel (@vercel/python handler expects 'app')
+__all__ = ['app']
