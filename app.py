@@ -453,6 +453,8 @@ def delete_team(team_id):
     flash('Team deleted successfully', 'success')
     return redirect(url_for('manage_teams'))
 
+# Note: Database initialization is handled in api/index.py for Vercel
+
 if __name__ == '__main__':
     with app.app_context():
         init_db()
