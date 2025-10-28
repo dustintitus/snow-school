@@ -7,19 +7,29 @@ from pathlib import Path
 # Add parent directory to path so we can import app
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from werkzeug.wrappers import Request, Response
-from werkzeug.middleware.proxy_fix import ProxyFix
-
 # Import the Flask app
-from app import app as flask_app
+from app import app
 
-# Add proxy fix for Vercel
-app = ProxyFix(flask_app, x_for=1, x_proto=1, x_host=1, x_port=1)
+def handler(req, res):
+    """
+    Vercel handler function
+    req: Vercel request object
+    res: Vercel response object
+    """
+    # Convert Vercel request to WSGI environ
+    def start_response(status, headers):
+        # Set status
+        res.status(status)
+        # Set headers
+        for header in headers:
+            res.setHeader(header[0], header[1])
+        return res.write
+    
+    # Call Flask app with WSGI
+    app(req.environ, start_response)
+    
+    return res
 
-def handler(request):
-    """Vercel serverless handler"""
-    return Response.from_app(app, request.environ, buffered=True)
-
-# Export for Vercel
+# Export
 __all__ = ['handler']
 
