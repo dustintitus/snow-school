@@ -104,7 +104,7 @@ body {
 }
 
 .user-info {
-    color: rgba(255, 255, 255, 0.9) !important;
+    color: var(--primary-color) !important;
     font-size: 0.9rem;
 }
 
