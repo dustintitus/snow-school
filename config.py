@@ -19,8 +19,8 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     
-    # Use SQLite for Vercel deployment (simpler setup)
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{os.path.join(os.path.dirname(__file__), "athlete_evaluation.db")}'
+    # Use in-memory SQLite for Vercel deployment (serverless-friendly)
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///:memory:'
     
     # Security settings
     SESSION_COOKIE_SECURE = True  # Only send cookies over HTTPS
