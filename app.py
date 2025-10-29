@@ -5,12 +5,17 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Evaluation, Program, Team, Attendance
 from datetime import datetime
 from config import config
+import logging
 
 app = Flask(__name__)
 
 # Load configuration from environment
 env = os.environ.get('FLASK_ENV', 'development')
 app.config.from_object(config.get(env, config['development']))
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+app.logger.setLevel(logging.INFO)
 
 db.init_app(app)
 login_manager = LoginManager()
@@ -112,17 +117,25 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        user = User.query.filter_by(username=username).first()
-        
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid username or password', 'error')
+        try:
+            username = request.form.get('username')
+            password = request.form.get('password')
+            
+            if not username or not password:
+                flash('Please enter both username and password', 'error')
+                return render_template('login.html')
+            
+            user = User.query.filter_by(username=username).first()
+            
+            if user and check_password_hash(user.password_hash, password):
+                login_user(user)
+                flash('Login successful!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid username or password', 'error')
+        except Exception as e:
+            app.logger.error(f"Login error: {e}")
+            flash('An error occurred during login. Please try again.', 'error')
     
     return render_template('login.html')
 
