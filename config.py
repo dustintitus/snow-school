@@ -22,7 +22,7 @@ class ProductionConfig(Config):
     # For Vercel/Serverless, use PostgreSQL or compatible database
     # Vercel Postgres: DATABASE_URL from environment
     # Neon, Supabase, PlanetScale are also good options
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_PRISMA_URL') or 'sqlite:///athlete_evaluation.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_PRISMA_URL') or os.environ.get('NEON_DATABASE_URL') or 'sqlite:///athlete_evaluation.db'
     
     # Security settings
     SESSION_COOKIE_SECURE = True  # Only send cookies over HTTPS
