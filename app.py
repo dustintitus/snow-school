@@ -379,8 +379,17 @@ def create_program():
     
     name = request.form.get('name')
     description = request.form.get('description')
+    frequency_type = request.form.get('frequency_type', 'daily')
+    frequency_value = int(request.form.get('frequency_value', 8))
+    frequency_days = request.form.get('frequency_days', None)
     
-    program = Program(name=name, description=description)
+    program = Program(
+        name=name, 
+        description=description,
+        frequency_type=frequency_type,
+        frequency_value=frequency_value,
+        frequency_days=frequency_days
+    )
     db.session.add(program)
     db.session.commit()
     flash('Program created successfully', 'success')
@@ -396,6 +405,9 @@ def update_program(program_id):
     program = Program.query.get_or_404(program_id)
     program.name = request.form.get('name')
     program.description = request.form.get('description')
+    program.frequency_type = request.form.get('frequency_type', 'daily')
+    program.frequency_value = int(request.form.get('frequency_value', 8))
+    program.frequency_days = request.form.get('frequency_days', None)
     
     db.session.commit()
     flash('Program updated successfully', 'success')
