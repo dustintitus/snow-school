@@ -114,6 +114,29 @@ def index():
         return redirect(url_for('dashboard'))
     return render_template('index.html')
 
+@app.route('/health')
+def health():
+    """Health check endpoint for debugging"""
+    try:
+        # Test database connection
+        user_count = User.query.count()
+        program_count = Program.query.count()
+        
+        return {
+            'status': 'healthy',
+            'database': 'connected',
+            'users': user_count,
+            'programs': program_count,
+            'environment': os.environ.get('FLASK_ENV', 'development')
+        }
+    except Exception as e:
+        app.logger.error(f"Health check error: {e}")
+        return {
+            'status': 'error',
+            'error': str(e),
+            'environment': os.environ.get('FLASK_ENV', 'development')
+        }, 500
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
