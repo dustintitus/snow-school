@@ -8,12 +8,12 @@ class Config:
     
     # Vercel-compatible database configuration
     # Use environment variable for production database
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///athlete_evaluation.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{os.path.join(os.path.dirname(__file__), "athlete_evaluation.db")}'
     
 class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///athlete_evaluation.db'
+    SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(os.path.dirname(__file__), "athlete_evaluation.db")}'
     
 class ProductionConfig(Config):
     """Production configuration"""
