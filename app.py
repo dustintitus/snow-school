@@ -560,8 +560,10 @@ def record_attendance(team_id):
     return redirect(url_for('manage_attendance', team_id=team_id))
 
 if __name__ == '__main__':
-    with app.app_context():
-        init_db()
+    # Only run init_db in development
+    if os.environ.get('FLASK_ENV') == 'development':
+        with app.app_context():
+            init_db()
     
     # Development server
     app.run(debug=True, host='0.0.0.0', port=5001)
