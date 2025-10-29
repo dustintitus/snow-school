@@ -379,16 +379,24 @@ def create_program():
     
     name = request.form.get('name')
     description = request.form.get('description')
-    frequency_type = request.form.get('frequency_type', 'daily')
+    frequency_type = request.form.get('frequency_type', 'consecutive')
     frequency_value = int(request.form.get('frequency_value', 8))
     frequency_days = request.form.get('frequency_days', None)
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date', None)
+    
+    # Convert date strings to date objects
+    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date() if start_date else None
+    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date() if end_date else None
     
     program = Program(
         name=name, 
         description=description,
         frequency_type=frequency_type,
         frequency_value=frequency_value,
-        frequency_days=frequency_days
+        frequency_days=frequency_days,
+        start_date=start_date_obj,
+        end_date=end_date_obj
     )
     db.session.add(program)
     db.session.commit()
@@ -403,11 +411,21 @@ def update_program(program_id):
         return redirect(url_for('dashboard'))
     
     program = Program.query.get_or_404(program_id)
+    
     program.name = request.form.get('name')
     program.description = request.form.get('description')
-    program.frequency_type = request.form.get('frequency_type', 'daily')
+    program.frequency_type = request.form.get('frequency_type', 'consecutive')
     program.frequency_value = int(request.form.get('frequency_value', 8))
     program.frequency_days = request.form.get('frequency_days', None)
+    
+    # Handle date updates
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date', None)
+    
+    if start_date:
+        program.start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    if end_date:
+        program.end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     
     db.session.commit()
     flash('Program updated successfully', 'success')

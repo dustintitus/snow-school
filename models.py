@@ -12,6 +12,7 @@ class Program(db.Model):
     frequency_value = db.Column(db.Integer, nullable=False, default=8)  # Number of sessions
     frequency_days = db.Column(db.String(50), nullable=True)  # For weekly: 'saturday', 'sunday', etc. For custom: comma-separated days
     start_date = db.Column(db.Date, nullable=True)  # Program start date
+    end_date = db.Column(db.Date, nullable=True)  # Program end date
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     
     teams = db.relationship('Team', backref='program', lazy=True)

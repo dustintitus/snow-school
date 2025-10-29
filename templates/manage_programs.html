@@ -10,7 +10,7 @@
 
 <div class="card">
     <h3>Create New Program</h3>
-    <form method="POST" action="{{ url_for('create_program') }}">
+    <form method="POST" action="{{ url_for('create_program') }}" id="createProgramForm">
         <div class="form-group">
             <label for="name">Program Name</label>
             <input type="text" id="name" name="name" required>
@@ -19,6 +19,63 @@
             <label for="description">Description</label>
             <textarea id="description" name="description" rows="3"></textarea>
         </div>
+        
+        <!-- Program Schedule Section -->
+        <div class="form-section">
+            <h4>Program Schedule</h4>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="start_date">Start Date</label>
+                    <input type="date" id="start_date" name="start_date" required>
+                </div>
+                <div class="form-group">
+                    <label for="end_date">End Date (Optional)</label>
+                    <input type="date" id="end_date" name="end_date">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="frequency_type">Schedule Type</label>
+                <select id="frequency_type" name="frequency_type" required onchange="updateFrequencyOptions()">
+                    <option value="consecutive">Consecutive Days</option>
+                    <option value="weekly">Weekly (Same Day)</option>
+                    <option value="custom">Custom Schedule</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="frequency_value_group">
+                <label for="frequency_value">Number of Sessions</label>
+                <input type="number" id="frequency_value" name="frequency_value" min="1" max="365" value="8" required>
+            </div>
+            
+            <div class="form-group" id="frequency_days_group" style="display: none;">
+                <label for="frequency_days">Day of Week</label>
+                <select id="frequency_days" name="frequency_days">
+                    <option value="monday">Monday</option>
+                    <option value="tuesday">Tuesday</option>
+                    <option value="wednesday">Wednesday</option>
+                    <option value="thursday">Thursday</option>
+                    <option value="friday">Friday</option>
+                    <option value="saturday">Saturday</option>
+                    <option value="sunday">Sunday</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="custom_days_group" style="display: none;">
+                <label>Select Days</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="custom_days" value="monday"> Monday</label>
+                    <label><input type="checkbox" name="custom_days" value="tuesday"> Tuesday</label>
+                    <label><input type="checkbox" name="custom_days" value="wednesday"> Wednesday</label>
+                    <label><input type="checkbox" name="custom_days" value="thursday"> Thursday</label>
+                    <label><input type="checkbox" name="custom_days" value="friday"> Friday</label>
+                    <label><input type="checkbox" name="custom_days" value="saturday"> Saturday</label>
+                    <label><input type="checkbox" name="custom_days" value="sunday"> Sunday</label>
+                </div>
+            </div>
+        </div>
+        
         <button type="submit" class="btn btn-primary">Create Program</button>
     </form>
 </div>
@@ -31,6 +88,7 @@
             <tr>
                 <th>Name</th>
                 <th>Description</th>
+                <th>Schedule</th>
                 <th>Classes/Teams</th>
                 <th>Actions</th>
             </tr>
@@ -56,6 +114,21 @@
                     </div>
                 </td>
                 <td>{{ program.description }}</td>
+                <td>
+                    <div class="schedule-info">
+                        <strong>{{ program.frequency_type.title() }}</strong>
+                        {% if program.start_date %}
+                        <br><small>Start: {{ program.start_date.strftime('%b %d, %Y') }}</small>
+                        {% endif %}
+                        {% if program.end_date %}
+                        <br><small>End: {{ program.end_date.strftime('%b %d, %Y') }}</small>
+                        {% endif %}
+                        <br><small>{{ program.frequency_value }} sessions</small>
+                        {% if program.frequency_days %}
+                        <br><small>{{ program.frequency_days.title() }}</small>
+                        {% endif %}
+                    </div>
+                </td>
                 <td>{{ program.teams|length }} {% if program.teams|length == 1 %}class/team{% else %}classes/teams{% endif %}</td>
                 <td>
                     <button onclick="toggleEdit({{ program.id }})" class="btn btn-sm btn-secondary">Edit</button>
@@ -79,6 +152,61 @@ function toggleEdit(programId) {
     const form = document.getElementById('edit-form-' + programId);
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
 }
+
+function updateFrequencyOptions() {
+    const frequencyType = document.getElementById('frequency_type').value;
+    const frequencyDaysGroup = document.getElementById('frequency_days_group');
+    const customDaysGroup = document.getElementById('custom_days_group');
+    const frequencyValueGroup = document.getElementById('frequency_value_group');
+    
+    // Hide all optional groups first
+    frequencyDaysGroup.style.display = 'none';
+    customDaysGroup.style.display = 'none';
+    
+    // Show relevant groups based on selection
+    if (frequencyType === 'weekly') {
+        frequencyDaysGroup.style.display = 'block';
+        frequencyValueGroup.querySelector('label').textContent = 'Number of Weeks';
+    } else if (frequencyType === 'custom') {
+        customDaysGroup.style.display = 'block';
+        frequencyValueGroup.querySelector('label').textContent = 'Number of Sessions';
+    } else {
+        frequencyValueGroup.querySelector('label').textContent = 'Number of Sessions';
+    }
+}
+
+// Set default date to today
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('start_date').value = today;
+    
+    // Initialize frequency options
+    updateFrequencyOptions();
+});
+
+// Handle custom days selection
+function handleCustomDays() {
+    const checkboxes = document.querySelectorAll('input[name="custom_days"]:checked');
+    const customDaysInput = document.createElement('input');
+    customDaysInput.type = 'hidden';
+    customDaysInput.name = 'frequency_days';
+    customDaysInput.value = Array.from(checkboxes).map(cb => cb.value).join(',');
+    
+    // Remove existing hidden input if any
+    const existing = document.querySelector('input[name="frequency_days"][type="hidden"]');
+    if (existing) existing.remove();
+    
+    // Add new hidden input
+    document.getElementById('createProgramForm').appendChild(customDaysInput);
+}
+
+// Add event listeners to custom day checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('input[name="custom_days"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', handleCustomDays);
+    });
+});
 </script>
 {% endblock %}
 
