@@ -44,6 +44,8 @@ class User(UserMixin, db.Model):
     participates_skier = db.Column(db.Boolean, default=False)  # Can participate in skiing
     participates_snowboarder = db.Column(db.Boolean, default=False)  # Can participate in snowboarding
     participates_snow_stars = db.Column(db.Boolean, default=False)  # Can participate in Snow Stars
+    participates_hv_skier = db.Column(db.Boolean, default=False)  # Can participate in Horseshoe Valley Skiing
+    participates_hv_snowboarder = db.Column(db.Boolean, default=False)  # Can participate in Horseshoe Valley Snowboarding
     instructor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id', use_alter=True), nullable=True)  # For students
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
@@ -98,6 +100,20 @@ class Evaluation(db.Model):
     control_score = db.Column(db.Float, nullable=True)
     awareness_score = db.Column(db.Float, nullable=True)
     
+    # Horseshoe Valley Skiing program criteria
+    hv_skills_balance_score = db.Column(db.Float, nullable=True)  # S&B
+    hv_edging_score = db.Column(db.Float, nullable=True)  # E
+    hv_turn_shape_performance_score = db.Column(db.Float, nullable=True)  # T&P
+    hv_pressure_control_score = db.Column(db.Float, nullable=True)  # P.C
+    hv_technical_score = db.Column(db.Float, nullable=True)  # T
+    
+    # Horseshoe Valley Snowboarding program criteria
+    hv_technical_skills_score = db.Column(db.Float, nullable=True)
+    hv_freeride_skills_score = db.Column(db.Float, nullable=True)
+    hv_balance_score = db.Column(db.Float, nullable=True)
+    hv_steering_control_score = db.Column(db.Float, nullable=True)
+    hv_edge_control_score = db.Column(db.Float, nullable=True)
+    
     comments = db.Column(db.Text)
     created_at = db.Column(db.DateTime, nullable=False)
     
@@ -127,6 +143,24 @@ class Evaluation(db.Model):
         """Average score for Snow Stars program (ACA)"""
         if self.movement_quality_score and self.balance_score and self.control_score and self.awareness_score:
             return round((self.movement_quality_score + self.balance_score + self.control_score + self.awareness_score) / 4, 2)
+        return None
+    
+    @property
+    def hv_skier_average_score(self):
+        """Average score for Horseshoe Valley Skiing program"""
+        scores = [self.hv_skills_balance_score, self.hv_edging_score, self.hv_turn_shape_performance_score, 
+                 self.hv_pressure_control_score, self.hv_technical_score]
+        if all(s is not None for s in scores):
+            return round(sum(scores) / len(scores), 2)
+        return None
+    
+    @property
+    def hv_snowboarder_average_score(self):
+        """Average score for Horseshoe Valley Snowboarding program"""
+        scores = [self.hv_technical_skills_score, self.hv_freeride_skills_score, self.hv_balance_score,
+                 self.hv_steering_control_score, self.hv_edge_control_score]
+        if all(s is not None for s in scores):
+            return round(sum(scores) / len(scores), 2)
         return None
     
     def __repr__(self):

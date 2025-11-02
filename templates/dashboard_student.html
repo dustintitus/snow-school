@@ -42,6 +42,24 @@
                     STEP {{ eval.level }}
                     {% elif eval.sport_type == 'snowboarder' %}
                     RIP {{ eval.level }}
+                    {% elif eval.sport_type == 'snow_stars' %}
+                    Racing (Snow Stars) {{ eval.level }}
+                    {% elif eval.sport_type == 'hv_skier' %}
+                    {% if eval.level == 1 %}HV Level 1 - RED
+                    {% elif eval.level == 2 %}HV Level 2 - GREEN
+                    {% elif eval.level == 3 %}HV Level 3 - BLUE
+                    {% elif eval.level == 4 %}HV Level 4 - BLACK
+                    {% elif eval.level == 5 %}HV Level 5 - DOUBLE BLACK
+                    {% else %}HV Level {{ eval.level }}{% endif %}
+                    {% elif eval.sport_type == 'hv_snowboarder' %}
+                    {% if eval.level == 1 %}HV Little Rippers A - BRONZE
+                    {% elif eval.level == 2 %}HV Little Rippers B - SILVER
+                    {% elif eval.level == 3 %}HV Little Rippers C - GOLD
+                    {% elif eval.level == 4 %}HV Level 1 - RED
+                    {% elif eval.level == 5 %}HV Level 2 - GREEN
+                    {% elif eval.level == 6 %}HV Level 3 - BLUE
+                    {% elif eval.level == 7 %}HV Level 4 - BLACK
+                    {% else %}HV Level {{ eval.level }}{% endif %}
                     {% endif %}
                 </td>
                 <td>{{ eval.skills_score }}/10</td>

@@ -6,7 +6,7 @@
 <div class="auth-container">
     <div class="auth-card">
         <h2>Evaluate Student: {{ student.full_name }}</h2>
-        {% if not student.participates_skier and not student.participates_snowboarder %}
+        {% if not student.participates_skier and not student.participates_snowboarder and not student.participates_snow_stars and not student.participates_hv_skier and not student.participates_hv_snowboarder %}
         <div class="alert alert-error">
             <p><strong>Error:</strong> This student has no sports assigned. Please update student profile before evaluating.</p>
         </div>
@@ -44,6 +44,26 @@
                             <div class="sport-icon">🏁</div>
                             <div class="sport-title">Racing</div>
                             <div class="sport-subtitle">Snow Stars (ACA)</div>
+                        </div>
+                    </label>
+                    {% endif %}
+                    {% if student.participates_hv_skier %}
+                    <label for="sport_hv_skier" class="sport-card" onclick="selectSport('hv_skier')">
+                        <input type="radio" id="sport_hv_skier" name="sport_type" value="hv_skier" required onchange="updateEvaluationForm('hv_skier')">
+                        <div class="sport-card-content">
+                            <div class="sport-icon">🎿</div>
+                            <div class="sport-title">Skiing</div>
+                            <div class="sport-subtitle">Horseshoe Valley</div>
+                        </div>
+                    </label>
+                    {% endif %}
+                    {% if student.participates_hv_snowboarder %}
+                    <label for="sport_hv_snowboarder" class="sport-card" onclick="selectSport('hv_snowboarder')">
+                        <input type="radio" id="sport_hv_snowboarder" name="sport_type" value="hv_snowboarder" required onchange="updateEvaluationForm('hv_snowboarder')">
+                        <div class="sport-card-content">
+                            <div class="sport-icon">🏂</div>
+                            <div class="sport-title">Snowboarding</div>
+                            <div class="sport-subtitle">Horseshoe Valley</div>
                         </div>
                     </label>
                     {% endif %}
@@ -95,6 +115,8 @@
 const completedLevelsSkier = {{ completed_levels_skier|tojson }};
 const completedLevelsSnowboarder = {{ completed_levels_snowboarder|tojson }};
 const completedLevelsSnowStars = {{ completed_levels_snow_stars|tojson }};
+const completedLevelsHvSkier = {{ completed_levels_hv_skier|tojson }};
+const completedLevelsHvSnowboarder = {{ completed_levels_hv_snowboarder|tojson }};
 
 function selectSport(sportType) {
     // Update radio button
@@ -107,20 +129,48 @@ function updateEvaluationForm(selectedSport) {
     const levelSelect = document.getElementById('level');
     levelSelect.innerHTML = '<option value="">Select Level</option>';
     
-    let maxLevel = selectedSport === 'skier' ? 8 : 6;
+    let maxLevel;
     let completedLevels;
+    let levelLabels = {};
+    
     if (selectedSport === 'skier') {
+        maxLevel = 8;
         completedLevels = completedLevelsSkier;
     } else if (selectedSport === 'snowboarder') {
+        maxLevel = 6;
         completedLevels = completedLevelsSnowboarder;
     } else if (selectedSport === 'snow_stars') {
+        maxLevel = 6;
         completedLevels = completedLevelsSnowStars;
+    } else if (selectedSport === 'hv_skier') {
+        maxLevel = 5;
+        completedLevels = completedLevelsHvSkier;
+        levelLabels = {
+            1: 'Level 1 - RED',
+            2: 'Level 2 - GREEN',
+            3: 'Level 3 - BLUE',
+            4: 'Level 4 - BLACK',
+            5: 'Level 5 - DOUBLE BLACK'
+        };
+    } else if (selectedSport === 'hv_snowboarder') {
+        maxLevel = 7;
+        completedLevels = completedLevelsHvSnowboarder;
+        levelLabels = {
+            1: 'Little Rippers A - BRONZE',
+            2: 'Little Rippers B - SILVER',
+            3: 'Little Rippers C - GOLD',
+            4: 'Level 1 - RED',
+            5: 'Level 2 - GREEN',
+            6: 'Level 3 - BLUE',
+            7: 'Level 4 - BLACK'
+        };
     }
     
     for (let i = 1; i <= maxLevel; i++) {
         const option = document.createElement('option');
         option.value = i;
-        option.textContent = `Level ${i}${completedLevels.includes(i) ? ' (Completed)' : ''}`;
+        const levelLabel = levelLabels[i] || `Level ${i}`;
+        option.textContent = `${levelLabel}${completedLevels.includes(i) ? ' (Completed)' : ''}`;
         if (completedLevels.includes(i)) {
             option.disabled = true;
         }
@@ -210,6 +260,60 @@ function updateCriteriaSection(selectedSport) {
             <div class="form-group">
                 <label for="awareness_score">Awareness (0-10)</label>
                 <input type="number" id="awareness_score" name="awareness_score" min="0" max="10" step="0.1" required>
+            </div>
+        `;
+    } else if (selectedSport === 'hv_skier') {
+        criteriaDiv.innerHTML = `
+            <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">Horseshoe Valley Skiing Program Criteria</h3>
+            <div style="background: var(--bg-light); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; border-left: 3px solid var(--primary-color);">
+                <strong>Type:</strong> Class
+            </div>
+            <div class="form-group">
+                <label for="hv_skills_balance_score">Skills & Balance (S&B) (0-10)</label>
+                <input type="number" id="hv_skills_balance_score" name="hv_skills_balance_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="hv_edging_score">Edging (E) (0-10)</label>
+                <input type="number" id="hv_edging_score" name="hv_edging_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="hv_turn_shape_performance_score">Turn Shape & Performance (T&P) (0-10)</label>
+                <input type="number" id="hv_turn_shape_performance_score" name="hv_turn_shape_performance_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="hv_pressure_control_score">Pressure Control (P.C) (0-10)</label>
+                <input type="number" id="hv_pressure_control_score" name="hv_pressure_control_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="hv_technical_score">Technical (T) (0-10)</label>
+                <input type="number" id="hv_technical_score" name="hv_technical_score" min="0" max="10" step="0.1" required>
+            </div>
+        `;
+    } else if (selectedSport === 'hv_snowboarder') {
+        criteriaDiv.innerHTML = `
+            <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">Horseshoe Valley Snowboarding Program Criteria</h3>
+            <div style="background: var(--bg-light); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; border-left: 3px solid var(--primary-color);">
+                <strong>Type:</strong> Class
+            </div>
+            <div class="form-group">
+                <label for="hv_technical_skills_score">Technical Skills (0-10)</label>
+                <input type="number" id="hv_technical_skills_score" name="hv_technical_skills_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="hv_freeride_skills_score">Freeride Skills (0-10)</label>
+                <input type="number" id="hv_freeride_skills_score" name="hv_freeride_skills_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="hv_balance_score">Balance (0-10)</label>
+                <input type="number" id="hv_balance_score" name="hv_balance_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="hv_steering_control_score">Steering & Control (0-10)</label>
+                <input type="number" id="hv_steering_control_score" name="hv_steering_control_score" min="0" max="10" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="hv_edge_control_score">Edge Control (0-10)</label>
+                <input type="number" id="hv_edge_control_score" name="hv_edge_control_score" min="0" max="10" step="0.1" required>
             </div>
         `;
     } else {

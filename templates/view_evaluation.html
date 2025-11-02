@@ -21,6 +21,22 @@
             RIP Level {{ evaluation.level }}
             {% elif evaluation.sport_type == 'snow_stars' %}
             Racing (Snow Stars) Level {{ evaluation.level }}
+            {% elif evaluation.sport_type == 'hv_skier' %}
+            {% if evaluation.level == 1 %}Level 1 - RED
+            {% elif evaluation.level == 2 %}Level 2 - GREEN
+            {% elif evaluation.level == 3 %}Level 3 - BLUE
+            {% elif evaluation.level == 4 %}Level 4 - BLACK
+            {% elif evaluation.level == 5 %}Level 5 - DOUBLE BLACK
+            {% else %}Level {{ evaluation.level }}{% endif %}
+            {% elif evaluation.sport_type == 'hv_snowboarder' %}
+            {% if evaluation.level == 1 %}Little Rippers A - BRONZE
+            {% elif evaluation.level == 2 %}Little Rippers B - SILVER
+            {% elif evaluation.level == 3 %}Little Rippers C - GOLD
+            {% elif evaluation.level == 4 %}Level 1 - RED
+            {% elif evaluation.level == 5 %}Level 2 - GREEN
+            {% elif evaluation.level == 6 %}Level 3 - BLUE
+            {% elif evaluation.level == 7 %}Level 4 - BLACK
+            {% else %}Level {{ evaluation.level }}{% endif %}
             {% endif %}
         </div>
         <div class="info-row">
@@ -115,6 +131,60 @@
     </div>
     <div class="program-average">
         <strong>Snow Stars Program Average:</strong> {{ evaluation.snow_stars_average_score }}/10
+    </div>
+    {% elif evaluation.sport_type == 'hv_skier' and evaluation.hv_skills_balance_score is not none %}
+    <h3>Horseshoe Valley Skiing Program Evaluation</h3>
+    <div class="scores-grid">
+        <div class="score-card">
+            <h3>Skills & Balance (S&B)</h3>
+            <div class="score-value">{{ evaluation.hv_skills_balance_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Edging (E)</h3>
+            <div class="score-value">{{ evaluation.hv_edging_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Turn Shape & Performance (T&P)</h3>
+            <div class="score-value">{{ evaluation.hv_turn_shape_performance_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Pressure Control (P.C)</h3>
+            <div class="score-value">{{ evaluation.hv_pressure_control_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Technical (T)</h3>
+            <div class="score-value">{{ evaluation.hv_technical_score }}/10</div>
+        </div>
+    </div>
+    <div class="program-average">
+        <strong>Horseshoe Valley Skiing Program Average:</strong> {{ evaluation.hv_skier_average_score }}/10
+    </div>
+    {% elif evaluation.sport_type == 'hv_snowboarder' and evaluation.hv_technical_skills_score is not none %}
+    <h3>Horseshoe Valley Snowboarding Program Evaluation</h3>
+    <div class="scores-grid">
+        <div class="score-card">
+            <h3>Technical Skills</h3>
+            <div class="score-value">{{ evaluation.hv_technical_skills_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Freeride Skills</h3>
+            <div class="score-value">{{ evaluation.hv_freeride_skills_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Balance</h3>
+            <div class="score-value">{{ evaluation.hv_balance_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Steering & Control</h3>
+            <div class="score-value">{{ evaluation.hv_steering_control_score }}/10</div>
+        </div>
+        <div class="score-card">
+            <h3>Edge Control</h3>
+            <div class="score-value">{{ evaluation.hv_edge_control_score }}/10</div>
+        </div>
+    </div>
+    <div class="program-average">
+        <strong>Horseshoe Valley Snowboarding Program Average:</strong> {{ evaluation.hv_snowboarder_average_score }}/10
     </div>
     {% endif %}
 

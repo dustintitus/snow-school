@@ -215,6 +215,8 @@ def register():
         participates_skier = request.form.get('participates_skier') == 'on'
         participates_snowboarder = request.form.get('participates_snowboarder') == 'on'
         participates_snow_stars = request.form.get('participates_snow_stars') == 'on'
+        participates_hv_skier = request.form.get('participates_hv_skier') == 'on'
+        participates_hv_snowboarder = request.form.get('participates_hv_snowboarder') == 'on'
         
         if User.query.filter_by(username=username).first():
             flash('Username already exists', 'error')
@@ -229,6 +231,8 @@ def register():
             participates_skier=participates_skier if user_type == 'student' else False,
             participates_snowboarder=participates_snowboarder if user_type == 'student' else False,
             participates_snow_stars=participates_snow_stars if user_type == 'student' else False,
+            participates_hv_skier=participates_hv_skier if user_type == 'student' else False,
+            participates_hv_snowboarder=participates_hv_snowboarder if user_type == 'student' else False,
             instructor_id=int(instructor_id) if instructor_id else None,
             team_id=int(team_id) if team_id and user_type == 'student' else None
         )
@@ -268,6 +272,12 @@ def evaluate_student(student_id):
             return redirect(url_for('dashboard'))
         elif sport_type == 'snow_stars' and not student.participates_snow_stars:
             flash('Student does not participate in Snow Stars. Please update student profile.', 'error')
+            return redirect(url_for('dashboard'))
+        elif sport_type == 'hv_skier' and not student.participates_hv_skier:
+            flash('Student does not participate in Horseshoe Valley Skiing. Please update student profile.', 'error')
+            return redirect(url_for('dashboard'))
+        elif sport_type == 'hv_snowboarder' and not student.participates_hv_snowboarder:
+            flash('Student does not participate in Horseshoe Valley Snowboarding. Please update student profile.', 'error')
             return redirect(url_for('dashboard'))
         
         if not sport_type:
@@ -315,6 +325,18 @@ def evaluate_student(student_id):
             evaluation.balance_score = float(request.form.get('balance_score'))
             evaluation.control_score = float(request.form.get('control_score'))
             evaluation.awareness_score = float(request.form.get('awareness_score'))
+        elif sport_type == 'hv_skier':
+            evaluation.hv_skills_balance_score = float(request.form.get('hv_skills_balance_score'))
+            evaluation.hv_edging_score = float(request.form.get('hv_edging_score'))
+            evaluation.hv_turn_shape_performance_score = float(request.form.get('hv_turn_shape_performance_score'))
+            evaluation.hv_pressure_control_score = float(request.form.get('hv_pressure_control_score'))
+            evaluation.hv_technical_score = float(request.form.get('hv_technical_score'))
+        elif sport_type == 'hv_snowboarder':
+            evaluation.hv_technical_skills_score = float(request.form.get('hv_technical_skills_score'))
+            evaluation.hv_freeride_skills_score = float(request.form.get('hv_freeride_skills_score'))
+            evaluation.hv_balance_score = float(request.form.get('hv_balance_score'))
+            evaluation.hv_steering_control_score = float(request.form.get('hv_steering_control_score'))
+            evaluation.hv_edge_control_score = float(request.form.get('hv_edge_control_score'))
         
         db.session.add(evaluation)
         db.session.commit()
@@ -329,11 +351,17 @@ def evaluate_student(student_id):
         available_sports.append('snowboarder')
     if student.participates_snow_stars:
         available_sports.append('snow_stars')
+    if student.participates_hv_skier:
+        available_sports.append('hv_skier')
+    if student.participates_hv_snowboarder:
+        available_sports.append('hv_snowboarder')
     
     # Get completed levels for each sport
     completed_levels_skier = []
     completed_levels_snowboarder = []
     completed_levels_snow_stars = []
+    completed_levels_hv_skier = []
+    completed_levels_hv_snowboarder = []
     
     for eval in Evaluation.query.filter_by(student_id=student_id).all():
         if eval.sport_type == 'skier':
@@ -342,12 +370,18 @@ def evaluate_student(student_id):
             completed_levels_snowboarder.append(eval.level)
         elif eval.sport_type == 'snow_stars':
             completed_levels_snow_stars.append(eval.level)
+        elif eval.sport_type == 'hv_skier':
+            completed_levels_hv_skier.append(eval.level)
+        elif eval.sport_type == 'hv_snowboarder':
+            completed_levels_hv_snowboarder.append(eval.level)
     
     return render_template('evaluate.html', student=student, 
                          available_sports=available_sports,
                          completed_levels_skier=completed_levels_skier,
                          completed_levels_snowboarder=completed_levels_snowboarder,
-                         completed_levels_snow_stars=completed_levels_snow_stars)
+                         completed_levels_snow_stars=completed_levels_snow_stars,
+                         completed_levels_hv_skier=completed_levels_hv_skier,
+                         completed_levels_hv_snowboarder=completed_levels_hv_snowboarder)
 
 @app.route('/evaluations/<int:evaluation_id>')
 @login_required
