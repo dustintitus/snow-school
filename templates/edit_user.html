@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Edit User: {{ user.full_name }}</h2>
+        <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" value="{{ user.username }}" required>
+            </div>
+            <div class="form-group">
+                <label for="full_name">Full Name</label>
+                <input type="text" id="full_name" name="full_name" value="{{ user.full_name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ user.email }}" required>
+            </div>
+            <div class="form-group">
+                <label for="password">New Password (leave blank to keep current)</label>
+                <input type="password" id="password" name="password">
+                <small style="color: var(--text-secondary);">Only enter a new password if you want to change it</small>
+            </div>
+            <div class="form-group">
+                <label for="user_type">User Type</label>
+                <select id="user_type" name="user_type" required onchange="toggleStudentFields()">
+                    <option value="admin" {% if user.user_type == 'admin' %}selected{% endif %}>Admin</option>
+                    <option value="instructor" {% if user.user_type == 'instructor' %}selected{% endif %}>Instructor</option>
+                    <option value="student" {% if user.user_type == 'student' %}selected{% endif %}>Student</option>
+                </select>
+            </div>
+            <input type="hidden" id="instructor_id" name="instructor_id" value="{{ user.instructor_id or '' }}">
+            <div class="form-group" id="team_group" style="display: {% if user.user_type == 'student' %}block{% else %}none{% endif %};">
+                <label for="team_id">Assign to Team</label>
+                <select id="team_id" name="team_id" onchange="updateInstructorFromTeam()">
+                    <option value="">Select Team</option>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" data-instructor="{{ team.instructor_id }}" {% if user.team_id == team.id %}selected{% endif %}>
+                        {{ team.name }} ({{ team.program.name }}) - {{ team.instructor.full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" id="sport_group" style="display: {% if user.user_type == 'student' %}block{% else %}none{% endif %};">
+                <label>Sports Participation</label>
+                <div style="margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="participates_skier" name="participates_skier" {% if user.participates_skier %}checked{% endif %}>
+                    <label for="participates_skier" style="display: inline; margin-left: 0.5rem;">Skiing (STEP Program - CSIA)</label>
+                </div>
+                <div style="margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="participates_snowboarder" name="participates_snowboarder" {% if user.participates_snowboarder %}checked{% endif %}>
+                    <label for="participates_snowboarder" style="display: inline; margin-left: 0.5rem;">Snowboarding (RIP Program - CASI)</label>
+                </div>
+                <div style="margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="participates_snow_stars" name="participates_snow_stars" {% if user.participates_snow_stars %}checked{% endif %}>
+                    <label for="participates_snow_stars" style="display: inline; margin-left: 0.5rem;">Racing - Snow Stars (ACA)</label>
+                </div>
+                <div style="margin-bottom: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+                    <input type="checkbox" id="participates_hv_skier" name="participates_hv_skier" {% if user.participates_hv_skier %}checked{% endif %}>
+                    <label for="participates_hv_skier" style="display: inline; margin-left: 0.5rem;">Skiing - Horseshoe Valley</label>
+                </div>
+                <div>
+                    <input type="checkbox" id="participates_hv_snowboarder" name="participates_hv_snowboarder" {% if user.participates_hv_snowboarder %}checked{% endif %}>
+                    <label for="participates_hv_snowboarder" style="display: inline; margin-left: 0.5rem;">Snowboarding - Horseshoe Valley</label>
+                </div>
+                <small style="color: var(--text-secondary);">Select at least one sport the athlete participates in</small>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Update User</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-block">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleStudentFields() {
+    const userType = document.getElementById('user_type').value;
+    const teamGroup = document.getElementById('team_group');
+    const sportGroup = document.getElementById('sport_group');
+    if (userType === 'student') {
+        teamGroup.style.display = 'block';
+        sportGroup.style.display = 'block';
+    } else {
+        teamGroup.style.display = 'none';
+        sportGroup.style.display = 'none';
+    }
+}
+
+function updateInstructorFromTeam() {
+    const teamSelect = document.getElementById('team_id');
+    const instructorInput = document.getElementById('instructor_id');
+    const selectedOption = teamSelect.options[teamSelect.selectedIndex];
+    
+    if (selectedOption.value) {
+        instructorInput.value = selectedOption.getAttribute('data-instructor');
+        
+        // Auto-check participation flags based on program name in team option text
+        const optionText = selectedOption.text;
+        const programMatch = optionText.match(/\(([^)]+)\)/);
+        if (programMatch) {
+            const programName = programMatch[1];
+            
+            // Uncheck all first (can be manually overridden)
+            document.getElementById('participates_skier').checked = false;
+            document.getElementById('participates_snowboarder').checked = false;
+            document.getElementById('participates_snow_stars').checked = false;
+            document.getElementById('participates_hv_skier').checked = false;
+            document.getElementById('participates_hv_snowboarder').checked = false;
+            
+            // Check appropriate flags based on program
+            if (programName === 'Horseshoe Valley Skiing') {
+                document.getElementById('participates_hv_skier').checked = true;
+            } else if (programName === 'Horseshoe Valley Snowboarding') {
+                document.getElementById('participates_hv_snowboarder').checked = true;
+            } else if (programName.includes('Skiing') || programName === 'Snowflakes' || programName === 'High Flyers') {
+                document.getElementById('participates_skier').checked = true;
+            } else if (programName.includes('Snowboarding') || programName === 'Trail Blazers') {
+                document.getElementById('participates_snowboarder').checked = true;
+            } else if (programName.includes('Snow Stars') || programName.includes('Racing') || programName === 'Terrain Park' || programName === 'LIT') {
+                document.getElementById('participates_snow_stars').checked = true;
+            }
+        }
+    } else {
+        instructorInput.value = '';
+    }
+}
+</script>
+{% endblock %}
+

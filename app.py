@@ -294,6 +294,92 @@ def register():
     programs = Program.query.all()
     return render_template('register.html', instructors=instructors, teams=teams, programs=programs)
 
+@app.route('/admin/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    if current_user.user_type != 'admin':
+        flash('Only admins can edit users', 'error')
+        return redirect(url_for('dashboard'))
+    
+    user = User.query.get_or_404(user_id)
+    
+    if request.method == 'POST':
+        # Check if username is being changed and if new username already exists
+        new_username = request.form.get('username', '').strip()
+        if new_username != user.username:
+            if User.query.filter_by(username=new_username).first():
+                flash('Username already exists', 'error')
+                instructors = User.query.filter_by(user_type='instructor').all()
+                teams = Team.query.all()
+                programs = Program.query.all()
+                return render_template('edit_user.html', user=user, instructors=instructors, teams=teams, programs=programs)
+        
+        # Update user fields
+        user.username = new_username
+        user.email = request.form.get('email', '').strip()
+        user.full_name = request.form.get('full_name', '').strip()
+        user_type = request.form.get('user_type')
+        user.user_type = user_type
+        
+        # Update password if provided
+        new_password = request.form.get('password', '').strip()
+        if new_password:
+            user.password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+        
+        # Update student-specific fields
+        if user_type == 'student':
+            instructor_id = request.form.get('instructor_id')
+            team_id = request.form.get('team_id')
+            
+            user.instructor_id = int(instructor_id) if instructor_id else None
+            user.team_id = int(team_id) if team_id else None
+            
+            # Update participation flags
+            user.participates_skier = request.form.get('participates_skier') == 'on'
+            user.participates_snowboarder = request.form.get('participates_snowboarder') == 'on'
+            user.participates_snow_stars = request.form.get('participates_snow_stars') == 'on'
+            user.participates_hv_skier = request.form.get('participates_hv_skier') == 'on'
+            user.participates_hv_snowboarder = request.form.get('participates_hv_snowboarder') == 'on'
+            
+            # Auto-update participation flags based on team program if team is assigned
+            if team_id:
+                update_student_participation_from_team(user)
+        else:
+            # Clear student-specific fields for non-students
+            user.instructor_id = None
+            user.team_id = None
+            user.participates_skier = False
+            user.participates_snowboarder = False
+            user.participates_snow_stars = False
+            user.participates_hv_skier = False
+            user.participates_hv_snowboarder = False
+        
+        db.session.commit()
+        flash('User updated successfully', 'success')
+        return redirect(url_for('dashboard'))
+    
+    instructors = User.query.filter_by(user_type='instructor').all()
+    teams = Team.query.all()
+    programs = Program.query.all()
+    
+    return render_template('edit_user.html', user=user, instructors=instructors, teams=teams, programs=programs)
+
+@app.route('/admin/view_student_evaluations/<int:student_id>')
+@login_required
+def view_student_evaluations(student_id):
+    if current_user.user_type != 'admin':
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    
+    student = User.query.get_or_404(student_id)
+    if student.user_type != 'student':
+        flash('This user is not a student', 'error')
+        return redirect(url_for('dashboard'))
+    
+    evaluations = Evaluation.query.filter_by(student_id=student_id).order_by(Evaluation.created_at.desc()).all()
+    
+    return render_template('view_student_evaluations.html', student=student, evaluations=evaluations)
+
 @app.route('/evaluate/<int:student_id>', methods=['GET', 'POST'])
 @login_required
 def evaluate_student(student_id):

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Student Evaluations - {{ student.full_name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h2>Evaluations for {{ student.full_name }}</h2>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+</div>
+
+<div class="card">
+    <h3>Student Information</h3>
+    <div class="evaluation-info">
+        <div class="info-row">
+            <strong>Username:</strong> {{ student.username }}
+        </div>
+        <div class="info-row">
+            <strong>Email:</strong> {{ student.email }}
+        </div>
+        <div class="info-row">
+            <strong>Instructor:</strong> {{ student.instructor.full_name if student.instructor else 'Not assigned' }}
+        </div>
+        <div class="info-row">
+            <strong>Team:</strong> {{ student.team.name if student.team else 'Not assigned' }}
+        </div>
+    </div>
+</div>
+
+{% if evaluations %}
+<div class="card">
+    <h3>All Evaluations ({{ evaluations|length }})</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Level</th>
+                <th>Sport/Framework</th>
+                <th>Instructor</th>
+                <th>Skills</th>
+                <th>Attitude</th>
+                <th>Performance</th>
+                <th>Average</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for eval in evaluations %}
+            <tr>
+                <td>{{ eval.created_at.strftime('%Y-%m-%d') }}</td>
+                <td>
+                    {% if eval.sport_type == 'skier' %}
+                    STEP {{ eval.level }}
+                    {% elif eval.sport_type == 'snowboarder' %}
+                    RIP {{ eval.level }}
+                    {% elif eval.sport_type == 'snow_stars' %}
+                    Racing (Snow Stars) {{ eval.level }}
+                    {% elif eval.sport_type == 'hv_skier' %}
+                    {% if eval.level == 1 %}HV Level 1 - RED
+                    {% elif eval.level == 2 %}HV Level 2 - GREEN
+                    {% elif eval.level == 3 %}HV Level 3 - BLUE
+                    {% elif eval.level == 4 %}HV Level 4 - BLACK
+                    {% elif eval.level == 5 %}HV Level 5 - DOUBLE BLACK
+                    {% else %}HV Level {{ eval.level }}{% endif %}
+                    {% elif eval.sport_type == 'hv_snowboarder' %}
+                    {% if eval.level == 1 %}HV Little Rippers A - BRONZE
+                    {% elif eval.level == 2 %}HV Little Rippers B - SILVER
+                    {% elif eval.level == 3 %}HV Little Rippers C - GOLD
+                    {% elif eval.level == 4 %}HV Level 1 - RED
+                    {% elif eval.level == 5 %}HV Level 2 - GREEN
+                    {% elif eval.level == 6 %}HV Level 3 - BLUE
+                    {% elif eval.level == 7 %}HV Level 4 - BLACK
+                    {% else %}HV Level {{ eval.level }}{% endif %}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if eval.sport_type == 'skier' %}
+                    <span class="badge badge-sport badge-skier">Skiing (STEP)</span>
+                    {% elif eval.sport_type == 'snowboarder' %}
+                    <span class="badge badge-sport badge-snowboarder">Snowboarding (RIP)</span>
+                    {% elif eval.sport_type == 'snow_stars' %}
+                    <span class="badge badge-sport" style="background-color: #fef3c7; color: #854d0e;">Racing (Snow Stars)</span>
+                    {% elif eval.sport_type == 'hv_skier' %}
+                    <span class="badge badge-sport badge-skier">Skiing (HV)</span>
+                    {% elif eval.sport_type == 'hv_snowboarder' %}
+                    <span class="badge badge-sport badge-snowboarder">Snowboarding (HV)</span>
+                    {% endif %}
+                </td>
+                <td>{{ eval.instructor.full_name }}</td>
+                <td>{{ eval.skills_score }}/10</td>
+                <td>{{ eval.attitude_score }}/10</td>
+                <td>{{ eval.performance_score }}/10</td>
+                <td><strong>{{ eval.average_score }}/10</strong></td>
+                <td>
+                    <a href="{{ url_for('view_evaluation', evaluation_id=eval.id) }}" class="btn btn-sm btn-primary">View Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p>No evaluations found for this student.</p>
+</div>
+{% endif %}
+{% endblock %}
+
