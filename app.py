@@ -26,6 +26,36 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+def update_student_participation_from_team(student):
+    """Update student participation flags based on their team's program"""
+    if student.user_type != 'student' or not student.team_id:
+        return
+    
+    team = Team.query.get(student.team_id)
+    if not team or not team.program:
+        return
+    
+    program_name = team.program.name
+    
+    # Map program names to participation flags (add flags without clearing existing ones)
+    # Horseshoe Valley Skiing - exact match
+    if program_name == 'Horseshoe Valley Skiing':
+        student.participates_hv_skier = True
+    # Horseshoe Valley Snowboarding - exact match
+    elif program_name == 'Horseshoe Valley Snowboarding':
+        student.participates_hv_snowboarder = True
+    # Snow Stars / Racing programs (ACA) - team type
+    elif team.team_type == 'team' or 'Snow Stars' in program_name or 'Racing' in program_name or 'Terrain Park' in program_name or 'LIT' in program_name:
+        student.participates_snow_stars = True
+    # Class type programs - check program name patterns
+    elif team.team_type == 'class':
+        # Programs likely for STEP (Skiing - CSIA)
+        if 'Skiing' in program_name or 'Snowflakes' in program_name or 'High Flyers' in program_name:
+            student.participates_skier = True
+        # Programs likely for RIP (Snowboarding - CASI)
+        elif 'Snowboarding' in program_name or 'Trail Blazers' in program_name:
+            student.participates_snowboarder = True
+
 def init_db():
     """Initialize database with sample data"""
     with app.app_context():
@@ -50,7 +80,9 @@ def init_db():
             ('Trail Blazers', 'Multi-level program for progressive skill development', 'weekly', 6, 'sunday'),
             ('LIT', 'Leader in Training program for aspiring instructors', 'daily', 10, None),
             ('Adult', 'Program designed for adult skiers and snowboarders', 'weekly', 4, 'saturday'),
-            ('Terrain Park', 'Specialized program for terrain park and freestyle development', 'daily', 6, None)
+            ('Terrain Park', 'Specialized program for terrain park and freestyle development', 'daily', 6, None),
+            ('Horseshoe Valley Skiing', 'Proprietary skiing evaluation framework program', 'weekly', 8, 'saturday'),
+            ('Horseshoe Valley Snowboarding', 'Proprietary snowboarding evaluation framework program', 'weekly', 8, 'saturday')
         ]
         
         for program_name, description, freq_type, freq_value, freq_days in programs_data:
@@ -238,6 +270,12 @@ def register():
         )
         
         db.session.add(new_user)
+        db.session.flush()  # Flush to get the user ID
+        
+        # Auto-update participation flags based on team program if team is assigned
+        if user_type == 'student' and team_id:
+            update_student_participation_from_team(new_user)
+        
         db.session.commit()
         flash('User created successfully', 'success')
         return redirect(url_for('dashboard'))
@@ -528,10 +566,16 @@ def update_team(team_id):
         return redirect(url_for('dashboard'))
     
     team = Team.query.get_or_404(team_id)
+    old_program_id = team.program_id
     team.name = request.form.get('name')
     team.program_id = int(request.form.get('program_id'))
     team.instructor_id = int(request.form.get('instructor_id'))
     team.team_type = request.form.get('team_type')
+    
+    # If program changed, update participation flags for all students in this team
+    if old_program_id != team.program_id:
+        for student in team.students:
+            update_student_participation_from_team(student)
     
     db.session.commit()
     flash('Team updated successfully', 'success')

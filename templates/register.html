@@ -94,6 +94,33 @@ function updateInstructorFromTeam() {
     
     if (selectedOption.value) {
         instructorInput.value = selectedOption.getAttribute('data-instructor');
+        
+        // Auto-check participation flags based on program name in team option text
+        const optionText = selectedOption.text;
+        const programMatch = optionText.match(/\(([^)]+)\)/);
+        if (programMatch) {
+            const programName = programMatch[1];
+            
+            // Uncheck all first (can be manually overridden)
+            document.getElementById('participates_skier').checked = false;
+            document.getElementById('participates_snowboarder').checked = false;
+            document.getElementById('participates_snow_stars').checked = false;
+            document.getElementById('participates_hv_skier').checked = false;
+            document.getElementById('participates_hv_snowboarder').checked = false;
+            
+            // Check appropriate flags based on program
+            if (programName === 'Horseshoe Valley Skiing') {
+                document.getElementById('participates_hv_skier').checked = true;
+            } else if (programName === 'Horseshoe Valley Snowboarding') {
+                document.getElementById('participates_hv_snowboarder').checked = true;
+            } else if (programName.includes('Skiing') || programName === 'Snowflakes' || programName === 'High Flyers') {
+                document.getElementById('participates_skier').checked = true;
+            } else if (programName.includes('Snowboarding') || programName === 'Trail Blazers') {
+                document.getElementById('participates_snowboarder').checked = true;
+            } else if (programName.includes('Snow Stars') || programName.includes('Racing') || programName === 'Terrain Park' || programName === 'LIT') {
+                document.getElementById('participates_snow_stars').checked = true;
+            }
+        }
     } else {
         instructorInput.value = '';
     }

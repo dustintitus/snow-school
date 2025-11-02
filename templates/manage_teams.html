@@ -132,10 +132,12 @@ function updateTypeLabel() {
     
     const selectedProgram = programSelect.options[programSelect.selectedIndex].text;
     
+    // Team type programs (Snow Stars, Racing)
     if (selectedProgram === 'Terrain Park' || selectedProgram === 'LIT') {
         typeSelect.value = 'team';
         submitBtn.textContent = 'Create Team';
     } else if (selectedProgram) {
+        // Class type programs (STEP, RIP, HV Skiing, HV Snowboarding)
         typeSelect.value = 'class';
         submitBtn.textContent = 'Create Class';
     }
