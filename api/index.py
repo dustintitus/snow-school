@@ -30,24 +30,26 @@ def initialize_database():
             users = [
                 User(
                     username='admin',
-                    email='admin@snowschool.com',
-                    password_hash=generate_password_hash('password123', method='pbkdf2:sha256'),
+                    email='admin@example.com',
+                    password_hash=generate_password_hash('admin123', method='pbkdf2:sha256'),
                     user_type='admin',
-                    full_name='Administrator'
+                    full_name='System Administrator'
                 ),
                 User(
                     username='instructor1',
-                    email='instructor@snowschool.com',
-                    password_hash=generate_password_hash('password123', method='pbkdf2:sha256'),
+                    email='instructor@example.com',
+                    password_hash=generate_password_hash('instructor123', method='pbkdf2:sha256'),
                     user_type='instructor',
-                    full_name='John Instructor'
+                    full_name='Coach Johnson'
                 ),
                 User(
                     username='student1',
-                    email='student@snowschool.com',
-                    password_hash=generate_password_hash('password123', method='pbkdf2:sha256'),
+                    email='student@example.com',
+                    password_hash=generate_password_hash('student123', method='pbkdf2:sha256'),
                     user_type='student',
-                    full_name='Jane Student'
+                    full_name='John Doe',
+                    participates_skier=True,
+                    participates_snowboarder=True
                 )
             ]
             
@@ -109,6 +111,24 @@ def initialize_database():
                     description='Terrain park and freestyle program',
                     frequency_type='consecutive',
                     frequency_value=6,
+                    start_date=date.today(),
+                    end_date=None
+                ),
+                Program(
+                    name='Horseshoe Valley Skiing',
+                    description='Proprietary skiing evaluation framework program',
+                    frequency_type='weekly',
+                    frequency_value=8,
+                    frequency_days='saturday',
+                    start_date=date.today(),
+                    end_date=None
+                ),
+                Program(
+                    name='Horseshoe Valley Snowboarding',
+                    description='Proprietary snowboarding evaluation framework program',
+                    frequency_type='weekly',
+                    frequency_value=8,
+                    frequency_days='saturday',
                     start_date=date.today(),
                     end_date=None
                 )
