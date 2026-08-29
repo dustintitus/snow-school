@@ -24,7 +24,7 @@
         <nav class="navbar" aria-label="Primary navigation">
             <div class="shell nav-inner">
                 <a class="brand" href="{{ url_for('index') }}" aria-label="Snow School home">
-                    {% if current_user.is_authenticated %}<img src="{{ url_for('static', filename='img/horseshoe-logo.png') }}" alt="Horseshoe Valley Resort" class="logo-img"><span class="brand-divider"></span><span class="brand-name">Snow<br>School</span>{% else %}<span class="public-brand-mark" aria-hidden="true">S<span>///</span></span><span class="public-brand-name">SNOW<br>SCHOOL</span>{% endif %}
+                    {% if current_user.is_authenticated %}<img src="{{ url_for('static', filename='img/horseshoe-logo.png') }}" alt="Horseshoe Valley Resort" class="logo-img"><span class="brand-divider"></span><span class="brand-name">Snow<br>School</span>{% else %}<span class="public-brand-mark" aria-hidden="true"><svg viewBox="0 0 52 52" role="presentation"><path class="mark-peak-back" d="M4 36 20 12l8 12 5-7 15 19H4Z"/><path class="mark-peak-front" d="m10 36 10-15 5 8 3-5 9 12H10Z"/><path class="mark-line" d="M8 40h36"/></svg></span><span class="public-brand-name"><strong>SNOW SCHOOL</strong><small>Progression platform</small></span>{% endif %}
                 </a>
                 <div class="nav-actions">
                     {% if current_user.is_authenticated %}
