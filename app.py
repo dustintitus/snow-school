@@ -3,7 +3,7 @@ import secrets
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Evaluation, Program, Team, Attendance, ClassSession
+from models import db, AppSetting, User, Evaluation, Program, Team, Attendance, ClassSession
 from datetime import datetime, date
 from config import config
 import logging
@@ -238,6 +238,32 @@ def init_db():
             db.session.add(student)
         
         db.session.commit()
+
+def seed_demo_accounts(seed_version, passwords):
+    """Apply an explicitly versioned demo-account reset exactly once."""
+    if not seed_version or set(passwords) != {'admin', 'instructor1', 'student1'} or not all(passwords.values()):
+        return False
+
+    setting_key = f'demo-account-seed:{seed_version}'
+    if db.session.get(AppSetting, setting_key):
+        return False
+
+    account_specs = (
+        ('admin', 'admin@snowschool.com', 'Administrator', 'admin'),
+        ('instructor1', 'instructor@snowschool.com', 'Demo Instructor', 'instructor'),
+        ('student1', 'student@snowschool.com', 'Demo Student', 'student'),
+    )
+    for username, email, full_name, user_type in account_specs:
+        user = User.query.filter_by(username=username).first()
+        if user is None:
+            user = User(username=username, email=email, full_name=full_name, user_type=user_type)
+            db.session.add(user)
+        user.password_hash = generate_password_hash(passwords[username], method='pbkdf2:sha256')
+        user.user_type = user_type
+
+    db.session.add(AppSetting(key=setting_key, value='applied'))
+    db.session.commit()
+    return True
 
 @app.route('/')
 def index():

@@ -6,9 +6,9 @@ os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SECRET_KEY'] = 'test-secret-key'
 os.environ['FLASK_ENV'] = 'production'
 
-from app import app
-from models import db, Attendance, ClassSession, Program, Team, User
-from werkzeug.security import generate_password_hash
+from app import app, seed_demo_accounts
+from models import db, AppSetting, Attendance, ClassSession, Program, Team, User
+from werkzeug.security import check_password_hash, generate_password_hash
 
 
 class WorkflowTestCase(unittest.TestCase):
@@ -124,6 +124,16 @@ class WorkflowTestCase(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.headers['Location'].endswith('/dashboard'))
+
+    def test_versioned_demo_seed_resets_accounts_only_once(self):
+        with app.app_context():
+            passwords = {'admin': 'new-admin', 'instructor1': 'new-coach', 'student1': 'new-student'}
+            self.assertTrue(seed_demo_accounts('test-v1', passwords))
+            coach = User.query.filter_by(username='instructor1').one()
+            self.assertTrue(check_password_hash(coach.password_hash, 'new-coach'))
+            self.assertEqual(coach.user_type, 'instructor')
+            self.assertFalse(seed_demo_accounts('test-v1', passwords))
+            self.assertIsNotNone(db.session.get(AppSetting, 'demo-account-seed:test-v1'))
 
 
 class CsrfTestCase(unittest.TestCase):
