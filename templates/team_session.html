@@ -19,6 +19,26 @@
     <div><strong>{{ team.program.frequency_value }}</strong><span>Planned sessions</span></div>
 </div>
 
+<section class="coach-status-panel">
+    <div class="coach-status-heading">
+        <div><p class="eyebrow">Live class status</p><h3>{{ class_session.status_label if class_session else 'Not started' }}</h3></div>
+        <a href="{{ url_for('coach_today', date=session_date.isoformat()) }}" class="inline-link">Today view</a>
+    </div>
+    <form method="POST" action="{{ url_for('update_session_status', team_id=team.id) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="session_date" value="{{ session_date.isoformat() }}">
+        <div class="status-actions" role="group" aria-label="Class status">
+            {% for status in session_statuses %}
+            <button type="submit" name="status" value="{{ status }}" class="status-action {% if (class_session and class_session.status == status) or (not class_session and status == 'not_started') %}is-active{% endif %}">{{ status|replace('_', ' ')|title }}</button>
+            {% endfor %}
+        </div>
+        <div class="coach-session-fields">
+            <label>Meeting point<input name="meeting_point" value="{{ class_session.meeting_point if class_session and class_session.meeting_point else '' }}" placeholder="e.g. Magic Carpet gate"></label>
+            <label>Coach handoff note<textarea name="coach_note" rows="2" placeholder="Conditions, focus, or supervisor handoff">{{ class_session.coach_note if class_session and class_session.coach_note else '' }}</textarea></label>
+        </div>
+    </form>
+</section>
+
 <form method="POST" action="{{ url_for('record_attendance', team_id=team.id) }}" class="session-roster-form">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
     <input type="hidden" name="session_date" value="{{ session_date.isoformat() }}">

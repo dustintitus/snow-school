@@ -1,0 +1,13 @@
+{
+  "name": "Horseshoe Snow School Coach",
+  "short_name": "Coach",
+  "description": "Mobile class administration for Horseshoe Snow School coaches.",
+  "start_url": "/coach",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbfaf6",
+  "theme_color": "#15352f",
+  "icons": [
+    {"src": "/static/img/horseshoe-logo.png", "sizes": "any", "type": "image/png", "purpose": "any"}
+  ]
+}

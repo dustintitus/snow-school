@@ -7,7 +7,7 @@ os.environ['SECRET_KEY'] = 'test-secret-key'
 os.environ['FLASK_ENV'] = 'production'
 
 from app import app
-from models import db, Attendance, Program, Team, User
+from models import db, Attendance, ClassSession, Program, Team, User
 from werkzeug.security import generate_password_hash
 
 
@@ -67,6 +67,34 @@ class WorkflowTestCase(unittest.TestCase):
         with app.app_context():
             self.assertEqual(Attendance.query.count(), 1)
             self.assertEqual(Attendance.query.first().notes, 'Strong balance')
+
+    def test_coach_companion_only_shows_owned_teams(self):
+        self.login_as(self.instructor_id)
+        response = self.client.get('/coach?date=2026-02-07')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Saturday Snowflakes', response.data)
+        self.assertIn(b'Coach companion', response.data)
+
+    def test_coach_can_update_class_status(self):
+        self.login_as(self.instructor_id)
+        response = self.client.post(f'/teams/{self.team_id}/session/status', data={
+            'session_date': '2026-02-07', 'status': 'on_hill',
+            'meeting_point': 'Magic Carpet gate', 'coach_note': 'Working on balance'
+        })
+        self.assertEqual(response.status_code, 302)
+        with app.app_context():
+            class_session = ClassSession.query.one()
+            self.assertEqual(class_session.status, 'on_hill')
+            self.assertEqual(class_session.meeting_point, 'Magic Carpet gate')
+
+    def test_other_instructor_cannot_update_class_status(self):
+        self.login_as(self.other_id)
+        response = self.client.post(f'/teams/{self.team_id}/session/status', data={
+            'session_date': '2026-02-07', 'status': 'completed'
+        })
+        self.assertEqual(response.status_code, 302)
+        with app.app_context():
+            self.assertEqual(ClassSession.query.count(), 0)
 
     def test_logout_requires_post(self):
         self.login_as(self.instructor_id)

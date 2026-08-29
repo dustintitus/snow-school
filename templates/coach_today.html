@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Coach Today | Snow School{% endblock %}
+{% block body_class %}coach-app{% endblock %}
+{% block content %}
+<header class="coach-today-header">
+    <div><p class="eyebrow">Coach companion</p><h2>Today on the hill</h2><p>{{ selected_date.strftime('%A, %B %d') }} · {{ current_user.full_name }}</p></div>
+    <form method="GET" class="coach-date-form"><label for="coach-date">Working date</label><input id="coach-date" name="date" type="date" value="{{ selected_date.isoformat() }}" onchange="this.form.submit()"></form>
+</header>
+
+<div class="coach-connectivity" data-connectivity aria-live="polite"><span></span><strong>Online</strong><small>Updates save immediately</small></div>
+
+{% if cards %}
+<div class="coach-class-list">
+    {% for card in cards %}
+    <article class="coach-class-card">
+        <div class="coach-card-status status-{{ card.session.status if card.session else 'not_started' }}">
+            {{ card.session.status_label if card.session else 'Not started' }}
+        </div>
+        <p class="eyebrow">{{ card.team.program.name }}</p>
+        <h3>{{ card.team.name }}</h3>
+        <div class="coach-card-metrics">
+            <div><strong>{{ card.team.students|length }}</strong><span>Roster</span></div>
+            <div><strong>{{ card.present }}</strong><span>Present</span></div>
+            <div><strong>{{ card.recorded }}/{{ card.team.students|length }}</strong><span>Recorded</span></div>
+        </div>
+        {% if card.session and card.session.meeting_point %}<p class="meeting-point"><span>Meet</span>{{ card.session.meeting_point }}</p>{% endif %}
+        <a href="{{ url_for('team_session', team_id=card.team.id, date=selected_date.isoformat()) }}" class="btn btn-primary btn-block">Open class <span>↗</span></a>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="coach-empty"><h3>No classes assigned</h3><p>Ask a snow school administrator to assign a team to your coach account.</p></div>
+{% endif %}
+
+<nav class="coach-bottom-nav" aria-label="Coach navigation"><a class="is-active" href="{{ url_for('coach_today') }}"><span>●</span>Today</a><a href="{{ url_for('dashboard') }}"><span>▦</span>Records</a></nav>
+{% endblock %}

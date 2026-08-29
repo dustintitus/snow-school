@@ -5,6 +5,7 @@
 {% block content %}
 <div class="dashboard-header">
     <h2>Instructor Dashboard</h2>
+    <a href="{{ url_for('coach_today') }}" class="btn btn-primary">Open coach mode <span>↗</span></a>
 </div>
 
 {% if teams %}

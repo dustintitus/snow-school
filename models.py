@@ -73,6 +73,25 @@ class Attendance(db.Model):
     def __repr__(self):
         return f'<Attendance {self.student.username} - {self.session_date}>'
 
+class ClassSession(db.Model):
+    """Operational state for one team's on-hill session."""
+    __table_args__ = (db.UniqueConstraint('team_id', 'session_date', name='uq_class_session_team_date'),)
+    id = db.Column(db.Integer, primary_key=True)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    session_date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='not_started')
+    meeting_point = db.Column(db.String(120), nullable=True)
+    coach_note = db.Column(db.Text, nullable=True)
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    team = db.relationship('Team', backref='class_sessions')
+    updater = db.relationship('User', foreign_keys=[updated_by])
+
+    @property
+    def status_label(self):
+        return self.status.replace('_', ' ').title()
+
 class Evaluation(db.Model):
     __table_args__ = (db.UniqueConstraint('student_id', 'sport_type', 'level', name='uq_evaluation_student_sport_level'),)
     id = db.Column(db.Integer, primary_key=True)

@@ -3,7 +3,7 @@ import secrets
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Evaluation, Program, Team, Attendance
+from models import db, User, Evaluation, Program, Team, Attendance, ClassSession
 from datetime import datetime, date
 from config import config
 import logging
@@ -60,6 +60,14 @@ def instructor_can_access_student(student):
         (student.team and student.team.instructor_id == current_user.id)
         or student.instructor_id == current_user.id
     )
+
+SESSION_STATUSES = ('not_started', 'checked_in', 'on_hill', 'break', 'completed')
+
+def parse_session_date(raw_value, fallback=None):
+    """Parse an ISO date used by coach tools."""
+    if not raw_value:
+        return fallback or date.today()
+    return datetime.strptime(raw_value, '%Y-%m-%d').date()
 
 def score_from_form(field):
     """Parse and validate a 0-10 score without trusting browser constraints."""
@@ -320,6 +328,31 @@ def dashboard():
     else:
         evaluations = Evaluation.query.filter_by(student_id=current_user.id).order_by(Evaluation.level).all()
         return render_template('dashboard_student.html', evaluations=evaluations)
+
+@app.route('/coach')
+@login_required
+def coach_today():
+    """Glove-friendly daily operations view for instructors."""
+    if current_user.user_type != 'instructor':
+        return redirect(url_for('dashboard'))
+    try:
+        selected_date = parse_session_date(request.args.get('date'))
+    except ValueError:
+        flash('Invalid session date', 'error')
+        return redirect(url_for('coach_today'))
+
+    teams = Team.query.filter_by(instructor_id=current_user.id).order_by(Team.name).all()
+    cards = []
+    for team in teams:
+        records = Attendance.query.filter_by(team_id=team.id, session_date=selected_date).all()
+        session_record = ClassSession.query.filter_by(team_id=team.id, session_date=selected_date).first()
+        cards.append({
+            'team': team,
+            'session': session_record,
+            'recorded': len(records),
+            'present': sum(1 for record in records if record.attended),
+        })
+    return render_template('coach_today.html', cards=cards, selected_date=selected_date)
 
 @app.route('/register', methods=['GET', 'POST'])
 @login_required
@@ -809,9 +842,8 @@ def team_session(team_id):
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
 
-    requested_date = request.args.get('date')
     try:
-        session_date = datetime.strptime(requested_date, '%Y-%m-%d').date() if requested_date else date.today()
+        session_date = parse_session_date(request.args.get('date'))
     except ValueError:
         flash('Invalid session date', 'error')
         return redirect(url_for('team_session', team_id=team_id))
@@ -827,10 +859,41 @@ def team_session(team_id):
         latest_evaluations[student.id] = Evaluation.query.filter_by(student_id=student.id).order_by(Evaluation.created_at.desc()).first()
         completed_levels[student.id] = Evaluation.query.filter_by(student_id=student.id).count()
 
+    class_session = ClassSession.query.filter_by(team_id=team_id, session_date=session_date).first()
+
     return render_template(
         'team_session.html', team=team, students=students, session_date=session_date,
-        attendance=attendance, latest_evaluations=latest_evaluations, completed_levels=completed_levels
+        attendance=attendance, latest_evaluations=latest_evaluations, completed_levels=completed_levels,
+        class_session=class_session, session_statuses=SESSION_STATUSES
     )
+
+@app.route('/teams/<int:team_id>/session/status', methods=['POST'])
+@login_required
+def update_session_status(team_id):
+    """Update the shared operational state for a coach's class."""
+    team = Team.query.get_or_404(team_id)
+    if not (is_admin() or instructor_owns_team(team)):
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    try:
+        session_date = parse_session_date(request.form.get('session_date'))
+    except ValueError:
+        flash('Please choose a valid session date', 'error')
+        return redirect(url_for('team_session', team_id=team_id))
+    status = request.form.get('status', '')
+    if status not in SESSION_STATUSES:
+        abort(400, description='Invalid class status')
+    class_session = ClassSession.query.filter_by(team_id=team_id, session_date=session_date).first()
+    if class_session is None:
+        class_session = ClassSession(team_id=team_id, session_date=session_date, updated_by=current_user.id)
+        db.session.add(class_session)
+    class_session.status = status
+    class_session.meeting_point = request.form.get('meeting_point', '').strip()[:120] or None
+    class_session.coach_note = request.form.get('coach_note', '').strip()[:2000] or None
+    class_session.updated_by = current_user.id
+    db.session.commit()
+    flash(f'Class marked {class_session.status_label.lower()}', 'success')
+    return redirect(url_for('team_session', team_id=team_id, date=session_date.isoformat()))
 
 @app.route('/attendance/<int:team_id>')
 @login_required
