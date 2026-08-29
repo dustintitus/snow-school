@@ -107,6 +107,24 @@ class WorkflowTestCase(unittest.TestCase):
         self.assertNotIn(b'users', response.data)
         self.assertNotIn(b'programs', response.data)
 
+    def test_mobile_login_redirects_coach_to_requested_local_path(self):
+        response = self.client.post('/login', data={
+            'username': 'coach',
+            'password': 'password123',
+            'next': '/coach',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers['Location'].endswith('/coach'))
+
+    def test_login_rejects_external_redirects(self):
+        response = self.client.post('/login', data={
+            'username': 'coach',
+            'password': 'password123',
+            'next': 'https://example.com/phishing',
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers['Location'].endswith('/dashboard'))
+
 
 class CsrfTestCase(unittest.TestCase):
     def test_post_without_token_is_rejected(self):

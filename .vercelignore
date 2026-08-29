@@ -1,0 +1,6 @@
+mobile/
+.venv/
+.venv312/
+tests/
+*.db
+*.log

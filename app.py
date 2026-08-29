@@ -7,6 +7,7 @@ from models import db, User, Evaluation, Program, Team, Attendance, ClassSession
 from datetime import datetime, date
 from config import config
 import logging
+from urllib.parse import urlparse
 
 app = Flask(__name__)
 
@@ -48,6 +49,15 @@ def protect_state_changes():
 
 def is_admin():
     return current_user.is_authenticated and current_user.user_type == 'admin'
+
+def safe_next_url(target):
+    """Allow redirects only to local application paths."""
+    if not target:
+        return None
+    parsed = urlparse(target)
+    if parsed.scheme or parsed.netloc or not target.startswith('/') or target.startswith('//'):
+        return None
+    return target
 
 def instructor_owns_team(team):
     return current_user.is_authenticated and current_user.user_type == 'instructor' and team.instructor_id == current_user.id
@@ -255,6 +265,7 @@ def health():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    next_url = safe_next_url(request.values.get('next'))
     if request.method == 'POST':
         try:
             username = request.form.get('username', '').strip()
@@ -264,7 +275,7 @@ def login():
             
             if not username or not password:
                 flash('Please enter both username and password', 'error')
-                return render_template('login.html')
+                return render_template('login.html', next_url=next_url)
             
             user = User.query.filter_by(username=username).first()
             
@@ -273,7 +284,7 @@ def login():
                 if password_valid:
                     login_user(user)
                     flash('Login successful!', 'success')
-                    return redirect(url_for('dashboard'))
+                    return redirect(next_url or url_for('dashboard'))
                 else:
                     flash('Invalid username or password', 'error')
             else:
@@ -283,7 +294,7 @@ def login():
             app.logger.error(f"Login error: {e}", exc_info=True)
             flash('An error occurred during login. Please try again.', 'error')
     
-    return render_template('login.html')
+    return render_template('login.html', next_url=next_url)
 
 @app.route('/logout', methods=['POST'])
 @login_required
