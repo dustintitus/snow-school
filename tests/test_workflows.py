@@ -6,7 +6,7 @@ os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SECRET_KEY'] = 'test-secret-key'
 os.environ['FLASK_ENV'] = 'production'
 
-from app import app, build_admin_dashboard, seed_demo_accounts, seed_horseshoe_catalogue
+from app import app, build_admin_dashboard, seed_demo_accounts, seed_demo_operations, seed_horseshoe_catalogue
 from models import db, AppSetting, Attendance, ClassSession, Enrollment, Program, ProgramProfile, Team, User
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -179,6 +179,22 @@ class WorkflowTestCase(unittest.TestCase):
         self.assertEqual(programs.status_code, 200)
         self.assertIn(b'Adult Social Ski + Snowboard', programs.data)
         self.assertIn(b'Need capacity', programs.data)
+
+    def test_demo_operations_populate_every_program_without_duplicates(self):
+        with app.app_context():
+            seed_horseshoe_catalogue('operations-catalogue')
+            self.assertTrue(seed_demo_operations('test-operations'))
+            first_counts = (Team.query.filter(Team.name.like('[Demo]%')).count(), User.query.filter(User.username.like('demo_student_%')).count(), Attendance.query.count())
+            self.assertFalse(seed_demo_operations('test-operations'))
+            self.assertEqual(first_counts, (Team.query.filter(Team.name.like('[Demo]%')).count(), User.query.filter(User.username.like('demo_student_%')).count(), Attendance.query.count()))
+            self.assertEqual(first_counts[0], 16)
+            self.assertGreater(first_counts[1], 80)
+            dashboard = build_admin_dashboard()
+            self.assertGreater(dashboard['registered'], 80)
+            self.assertGreater(dashboard['returning'], 0)
+            self.assertGreater(dashboard['waitlisted'], 0)
+            self.assertEqual(dashboard['history_seasons'], 3)
+            self.assertEqual(dashboard['capacity_missing'], 0)
 
 
 class CsrfTestCase(unittest.TestCase):

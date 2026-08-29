@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, AppSetting, User, Evaluation, Program, ProgramProfile, Enrollment, Team, Attendance, ClassSession
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from config import config
 import logging
 from urllib.parse import urlparse
@@ -264,6 +264,126 @@ def seed_horseshoe_catalogue(seed_version='2026-2027-v1'):
     db.session.commit()
     return True
 
+def seed_demo_operations(seed_version='horseshoe-operations-v1'):
+    """Create a clearly labelled, repeatable operating dataset for every active program."""
+    setting_key = f'demo-operations:{seed_version}'
+    if db.session.get(AppSetting, setting_key):
+        return False
+
+    profiles = ProgramProfile.query.filter_by(is_active=True, season=CURRENT_SEASON).order_by(ProgramProfile.id).all()
+    if not profiles:
+        return False
+
+    coach_names = ('Alex Morgan', 'Jamie Chen', 'Taylor Singh', 'Morgan Clarke', 'Casey Tremblay')
+    coach_password = generate_password_hash('password123', method='pbkdf2:sha256')
+    coaches = []
+    for coach_index, full_name in enumerate(coach_names, 1):
+        username = f'demo_coach_{coach_index}'
+        coach = User.query.filter_by(username=username).first()
+        if coach is None:
+            coach = User(
+                username=username,
+                email=f'{username}@demo.snowschool.app',
+                password_hash=coach_password,
+                full_name=f'Demo Coach {full_name}',
+                user_type='instructor',
+            )
+            db.session.add(coach)
+        coaches.append(coach)
+    db.session.flush()
+
+    first_names = ('Avery', 'Noah', 'Mia', 'Liam', 'Sophie', 'Ethan', 'Olivia', 'Lucas', 'Emma', 'Jack', 'Chloe', 'Mason')
+    last_names = ('Bennett', 'Martin', 'Wilson', 'Roy', 'Campbell', 'Taylor', 'Brown', 'Gagnon', 'Lee', 'Young', 'Scott', 'Robinson')
+    session_dates = (date(2027, 1, 9), date(2027, 1, 16), date(2027, 1, 23), date(2027, 1, 30))
+    student_counter = 0
+
+    for program_index, profile in enumerate(profiles):
+        if not profile.capacity:
+            profile.capacity = {'8 Week Programs': 24, 'Discover Lessons': 14, 'Private Lessons': 8, 'School Groups': 30}.get(profile.category, 16)
+        class_count = 2 if profile.category == '8 Week Programs' else 1
+        for class_index in range(class_count):
+            coach = coaches[(program_index + class_index) % len(coaches)]
+            class_suffix = chr(65 + class_index)
+            team_name = f'[Demo] {profile.program.name} · Class {class_suffix}'
+            team = Team.query.filter_by(name=team_name).first()
+            if team is None:
+                team = Team(name=team_name, program_id=profile.program_id, instructor_id=coach.id, team_type='class')
+                db.session.add(team)
+                db.session.flush()
+
+            roster_size = 5 + ((program_index + class_index) % 3)
+            for roster_index in range(roster_size):
+                student_counter += 1
+                username = f'demo_student_{student_counter:03d}'
+                student = User.query.filter_by(username=username).first()
+                if student is None:
+                    full_name = f'Demo {first_names[(student_counter - 1) % len(first_names)]} {last_names[(student_counter * 5) % len(last_names)]}'
+                    student = User(
+                        username=username,
+                        email=f'{username}@demo.snowschool.app',
+                        password_hash='!demo-data-no-login',
+                        full_name=full_name,
+                        user_type='student',
+                        team_id=team.id,
+                        instructor_id=coach.id,
+                        participates_skier=profile.sport in {'ski', 'ski_snowboard'},
+                        participates_snowboarder=profile.sport in {'snowboard', 'ski_snowboard'},
+                    )
+                    db.session.add(student)
+                    db.session.flush()
+
+                current_enrollment = Enrollment.query.filter_by(student_id=student.id, program_id=profile.program_id, season=CURRENT_SEASON).first()
+                if current_enrollment is None:
+                    current_enrollment = Enrollment(
+                        student_id=student.id, program_id=profile.program_id, team_id=team.id,
+                        season=CURRENT_SEASON, status='registered',
+                        registered_at=datetime(2026, 9, 14) + timedelta(days=student_counter % 45),
+                    )
+                    db.session.add(current_enrollment)
+
+                prior_seasons = ('2025-2026', '2024-2025') if student_counter % 4 == 0 else (('2025-2026',) if student_counter % 2 == 0 else ())
+                for prior_season in prior_seasons:
+                    if not Enrollment.query.filter_by(student_id=student.id, program_id=profile.program_id, season=prior_season).first():
+                        db.session.add(Enrollment(
+                            student_id=student.id, program_id=profile.program_id, team_id=team.id,
+                            season=prior_season, status='completed',
+                            registered_at=datetime(int(prior_season[:4]), 9, 15),
+                            completed_at=datetime(int(prior_season[5:]), 3, 15),
+                        ))
+
+                dates_for_program = session_dates if profile.category == '8 Week Programs' else session_dates[:2]
+                for session_index, session_date in enumerate(dates_for_program):
+                    if not Attendance.query.filter_by(student_id=student.id, team_id=team.id, session_date=session_date).first():
+                        db.session.add(Attendance(
+                            student_id=student.id, team_id=team.id, session_date=session_date,
+                            attended=(student_counter + session_index) % 9 != 0,
+                            notes='Demo attendance record', recorded_by=coach.id,
+                        ))
+
+        waitlist_count = 2 if program_index % 3 == 0 else 1
+        for waitlist_index in range(waitlist_count):
+            username = f'demo_waitlist_{program_index + 1:02d}_{waitlist_index + 1}'
+            guest = User.query.filter_by(username=username).first()
+            if guest is None:
+                guest = User(
+                    username=username,
+                    email=f'{username}@demo.snowschool.app',
+                    password_hash='!demo-data-no-login',
+                    full_name=f'Demo Waitlist Guest {program_index + 1}-{waitlist_index + 1}',
+                    user_type='student',
+                )
+                db.session.add(guest)
+                db.session.flush()
+            if not Enrollment.query.filter_by(student_id=guest.id, program_id=profile.program_id, season=CURRENT_SEASON).first():
+                db.session.add(Enrollment(
+                    student_id=guest.id, program_id=profile.program_id, season=CURRENT_SEASON,
+                    status='waitlisted', registered_at=datetime(2026, 10, 20) + timedelta(days=program_index),
+                ))
+
+    db.session.add(AppSetting(key=setting_key, value=f'{student_counter} participants'))
+    db.session.commit()
+    return True
+
 def build_admin_dashboard(season=CURRENT_SEASON):
     """Build a source-backed operational summary from programs and enrollment history."""
     enrollments = Enrollment.query.all()
@@ -401,6 +521,7 @@ def init_db():
         
         db.session.commit()
         seed_horseshoe_catalogue()
+        seed_demo_operations()
 
 def seed_demo_accounts(seed_version, passwords):
     """Apply an explicitly versioned demo-account reset exactly once."""
