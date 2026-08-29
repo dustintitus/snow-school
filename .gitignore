@@ -9,6 +9,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.venv/
 *.egg-info/
 dist/
 build/
@@ -36,4 +37,3 @@ app.log
 # OS
 .DS_Store
 Thumbs.db
-

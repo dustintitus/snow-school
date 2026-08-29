@@ -1,23 +1,17 @@
 {% extends "base.html" %}
-
+{% block body_class %}landing-page{% endblock %}
+{% block main_class %}landing-main{% endblock %}
 {% block content %}
-<div class="hero">
-    <h1>Today's lesson: SEND IT (responsibly).</h1>
-    <p>Horseshoe Valley Resort's comprehensive platform for ski and snowboard instructors to evaluate and track student progress.</p>
-    <div class="features">
-        <div class="feature-card">
-            <h3>For Instructors</h3>
-            <p>Evaluate your students' performance, track progress, and provide feedback.</p>
-        </div>
-        <div class="feature-card">
-            <h3>For Students</h3>
-            <p>View your evaluations, track your progress, and see feedback from coaches.</p>
-        </div>
-        <div class="feature-card">
-            <h3>For Admins</h3>
-            <p>Manage users, instructors, and students across the platform.</p>
-        </div>
-    </div>
-    <a href="{{ url_for('login') }}" class="btn btn-primary">Get Started</a>
-</div>
+<section class="hero">
+    <div class="hero-image" role="img" aria-label="Skiers riding a chairlift over a snowy Ontario ski hill"></div><div class="hero-shade"></div>
+    <div class="shell hero-content"><p class="eyebrow eyebrow-light">Horseshoe Valley Snow School</p><h1>Every great run<br>starts with <em>progress.</em></h1><p class="hero-copy">A shared home for instructors, athletes and families to capture feedback, celebrate milestones and keep the next goal in sight.</p><div class="hero-actions"><a href="{{ url_for('login') }}" class="btn btn-primary">Enter the portal <span aria-hidden="true">↗</span></a><a href="#how-it-works" class="text-link">Explore the experience <span aria-hidden="true">↓</span></a></div></div>
+    <div class="hero-status"><span class="status-kicker">The mountain is calling</span><strong>Skills. Confidence. Momentum.</strong></div>
+</section>
+<section class="intro shell" id="how-it-works"><div class="section-number">01</div><div class="intro-heading"><p class="eyebrow">Built for better days on snow</p><h2>More than a score.<br>A clear path forward.</h2></div><div class="intro-copy"><p>Snow School turns every lesson into a useful next step. Instructors can record focused, sport-specific feedback while students and families see growth unfold across the season.</p><a href="{{ url_for('login') }}" class="inline-link">View your progress <span>→</span></a></div></section>
+<section class="experience-grid shell" aria-label="Platform benefits">
+    <article class="experience-card experience-card-image"><img src="{{ url_for('static', filename='img/snowboard-coaching.webp') }}" alt="A snowboard instructor coaching a student on snow"><div class="image-card-caption"><span>Instructor-led</span><strong>Feedback from the hill,<br>ready when you are.</strong></div></article>
+    <div class="experience-stack"><article class="experience-card card-cream"><span class="card-index">For instructors · 01</span><h3>Coach with clarity</h3><p>Capture evaluations quickly, follow each athlete’s progression and keep coaching consistent from week to week.</p><span class="card-arrow">↗</span></article><article class="experience-card card-rust"><span class="card-index">For students · 02</span><h3>See what’s next</h3><p>Review feedback, celebrate completed levels and return to the hill knowing exactly where to focus.</p><span class="card-arrow">↗</span></article></div>
+</section>
+<section class="program-band"><div class="shell program-inner"><div><p class="eyebrow eyebrow-light">One mountain. Every journey.</p><h2>Progress that moves<br>with every rider.</h2></div><div class="program-list"><div><span>STEP</span><p>Structured skier development from first turns to confident technique.</p></div><div><span>RIP</span><p>Clear snowboard progression across control, edge awareness and flow.</p></div><div><span>TEAMS</span><p>Connected coaching, attendance and evaluations across every program.</p></div></div></div></section>
+<section class="cta-section shell"><p class="eyebrow">Ready for your next run?</p><h2>Your season,<br><em>all in one place.</em></h2><a href="{{ url_for('login') }}" class="btn btn-primary">Open Snow School <span>↗</span></a></section>
 {% endblock %}

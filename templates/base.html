@@ -3,41 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Snow School{% endblock %}</title>
+    <meta name="theme-color" content="#15352f">
+    <title>{% block title %}Snow School | Horseshoe Valley Resort{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <nav class="navbar">
-        <div class="container">
-            <div class="logo-container">
-                <img src="{{ url_for('static', filename='img/horseshoe-logo.png') }}" alt="Horseshoe Valley Resort" class="logo-img" onerror="this.style.display='none'; document.querySelector('.logo-text').style.display='block';">
-                <h1 class="logo logo-text" style="display: block !important;">Snow School</h1>
-            </div>
-            <ul class="nav-links">
-                {% if current_user.is_authenticated %}
-                    <li><span class="user-info">{{ current_user.full_name }} ({{ current_user.user_type }})</span></li>
-                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
-                {% else %}
-                    <li><a href="{{ url_for('login') }}">Login</a></li>
-                {% endif %}
-            </ul>
+<body class="{% block body_class %}{% endblock %}">
+    <header class="site-header">
+        <div class="utility-bar">
+            <div class="shell utility-inner"><span>Horseshoe Valley, Ontario</span><span class="utility-season">Winter programs · Progress made visible</span></div>
         </div>
-    </nav>
-
-    <div class="container main-content">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash flash-{{ category }}">{{ message }}</div>
-                    {% endfor %}
+        <nav class="navbar" aria-label="Primary navigation">
+            <div class="shell nav-inner">
+                <a class="brand" href="{{ url_for('index') }}" aria-label="Snow School home">
+                    <img src="{{ url_for('static', filename='img/horseshoe-logo.png') }}" alt="Horseshoe Valley Resort" class="logo-img">
+                    <span class="brand-divider"></span><span class="brand-name">Snow<br>School</span>
+                </a>
+                <div class="nav-actions">
+                    {% if current_user.is_authenticated %}
+                        <span class="user-chip"><span class="user-dot"></span>{{ current_user.full_name }} · {{ current_user.user_type|title }}</span>
+                        <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+                        <a href="{{ url_for('logout') }}" class="btn btn-nav">Sign out</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="nav-link">Member access</a>
+                        <a href="{{ url_for('login') }}" class="btn btn-nav">Sign in</a>
+                    {% endif %}
                 </div>
-            {% endif %}
+            </div>
+        </nav>
+    </header>
+    <main class="{% block main_class %}shell main-content{% endblock %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}<div class="flash-messages shell">{% for category, message in messages %}<div class="flash flash-{{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}
         {% endwith %}
-
         {% block content %}{% endblock %}
-    </div>
+    </main>
+    <footer class="site-footer"><div class="shell footer-inner"><div><strong>Snow School</strong><span>Horseshoe Valley Resort</span></div><p>Learn with confidence. Track every breakthrough.</p></div></footer>
 </body>
 </html>
