@@ -1,68 +1,43 @@
 {% extends "base.html" %}
-
 {% block title %}Admin Dashboard{% endblock %}
-
 {% block content %}
-<div class="dashboard-header">
-    <h2>Admin Dashboard</h2>
-    <div>
-        <a href="{{ url_for('register') }}" class="btn btn-primary">+ Add New User</a>
-        <a href="{{ url_for('manage_programs') }}" class="btn btn-secondary">Manage Programs</a>
-        <a href="{{ url_for('manage_teams') }}" class="btn btn-secondary">Manage Classes & Teams</a>
-    </div>
+<div class="dashboard-header admin-dashboard-header">
+    <div><p class="eyebrow">{{ dashboard_data.season }} season</p><h2>Snow School overview</h2><p class="dashboard-lede">A quick read on demand, returning guests, program delivery, and data that needs attention.</p></div>
+    <div class="dashboard-actions"><a href="{{ url_for('manage_programs') }}" class="btn btn-primary">Manage Programs</a><a href="{{ url_for('manage_teams') }}" class="btn btn-secondary">Classes & Teams</a><a href="{{ url_for('register') }}" class="btn btn-secondary">Add User</a></div>
 </div>
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <h3>{{ users|length }}</h3>
-        <p>Total Users</p>
-    </div>
-    <div class="stat-card">
-        <h3>{{ users|selectattr('user_type', 'equalto', 'instructor')|list|length }}</h3>
-        <p>Instructors</p>
-    </div>
-    <div class="stat-card">
-        <h3>{{ users|selectattr('user_type', 'equalto', 'student')|list|length }}</h3>
-        <p>Students</p>
-    </div>
+<div class="admin-kpi-grid">
+    <article class="admin-kpi admin-kpi-featured"><span>Registered participants</span><strong>{{ dashboard_data.registered }}</strong><small>Unique guests this season</small></article>
+    <article class="admin-kpi"><span>Returning guests</span><strong>{{ dashboard_data.returning_rate }}%</strong><small>{{ dashboard_data.returning }} of {{ dashboard_data.registered }} participants</small></article>
+    <article class="admin-kpi"><span>Average tenure</span><strong>{{ dashboard_data.average_seasons }}</strong><small>Seasons per participant</small></article>
+    <article class="admin-kpi"><span>Attendance</span><strong>{{ dashboard_data.attendance_rate ~ '%' if dashboard_data.attendance_rate is not none else '—' }}</strong><small>{{ 'Across recorded sessions' if dashboard_data.attendance_rate is not none else 'No attendance recorded yet' }}</small></article>
+    <article class="admin-kpi"><span>Active programs</span><strong>{{ dashboard_data.active_programs }}</strong><small>{{ dashboard_data.capacity_missing }} need capacity targets</small></article>
+    <article class="admin-kpi"><span>Waitlist</span><strong>{{ dashboard_data.waitlisted }}</strong><small>Guests awaiting placement</small></article>
 </div>
 
-<div class="card">
-    <h3>All Users</h3>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>Full Name</th>
-                <th>Email</th>
-                <th>User Type</th>
-                <th>Instructor</th>
-                <th>Team</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.username }}</td>
-                <td>{{ user.full_name }}</td>
-                <td>{{ user.email }}</td>
-                <td><span class="badge badge-{{ user.user_type }}">{{ user.user_type }}</span></td>
-                <td>{{ user.instructor.full_name if user.instructor else '-' }}</td>
-                <td>{{ user.team.name if user.team else '-' }}</td>
-                <td>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-secondary">Edit</a>
-                        {% if user.user_type == 'student' %}
-                        <a href="{{ url_for('view_student_evaluations', student_id=user.id) }}" class="btn btn-sm btn-primary">View Evaluations</a>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="dashboard-split">
+    <section class="card admin-panel">
+        <div class="panel-heading"><div><p class="eyebrow">Program health</p><h3>Enrollment by program</h3></div><a href="{{ url_for('manage_programs') }}" class="inline-link">Edit catalogue <span>→</span></a></div>
+        {% if dashboard_data.program_rows %}<div class="program-health-list">
+            {% for row in dashboard_data.program_rows %}<article class="program-health-row">
+                <div class="program-health-name"><strong>{{ row.program.name }}</strong><span>{{ row.profile.category }} · {{ row.teams }} {{ 'class' if row.teams == 1 else 'classes' }} · {{ row.coaches }} {{ 'coach' if row.coaches == 1 else 'coaches' }}</span></div>
+                <div class="program-health-count"><strong>{{ row.registered }}</strong><span>registered</span></div>
+                <div class="program-health-count"><strong>{{ row.returning_rate }}%</strong><span>returning</span></div>
+                <div class="capacity-meter">{% if row.capacity %}<div><span style="width: {{ [row.utilization, 100]|min }}%"></span></div><small>{{ row.registered }} / {{ row.capacity }} spaces · {{ row.utilization }}%</small>{% else %}<div class="capacity-empty"></div><small>Capacity not set</small>{% endif %}</div>
+            </article>{% endfor %}
+        </div>{% else %}<p class="empty-state">No active programs for this season.</p>{% endif %}
+    </section>
+    <aside class="card admin-panel">
+        <div class="panel-heading"><div><p class="eyebrow">Portfolio mix</p><h3>Registrations</h3></div></div>
+        <div class="category-bars">{% set max_category = dashboard_data.category_counts|map(attribute=1)|max if dashboard_data.category_counts else 0 %}{% for category, count in dashboard_data.category_counts %}<div class="category-bar"><div><span>{{ category }}</span><strong>{{ count }}</strong></div><div class="category-track"><span style="width: {{ (count / max_category * 100)|round if max_category else 0 }}%"></span></div></div>{% endfor %}</div>
+        <div class="data-note"><strong>About retention data</strong><p>Returning status uses saved enrollment history—not account age. This is season {{ dashboard_data.history_seasons or 1 }} of tracked history, so the rate becomes more useful each year.</p></div>
+    </aside>
 </div>
+
+<section class="card admin-panel">
+    <div class="panel-heading"><div><p class="eyebrow">People</p><h3>User directory</h3></div><span class="panel-total">{{ users|length }} total</span></div>
+    <div class="table-scroll"><table class="data-table"><thead><tr><th>Name</th><th>Role</th><th>Team</th><th>Email</th><th>Actions</th></tr></thead><tbody>
+    {% for user in users %}<tr><td><strong>{{ user.full_name }}</strong><br><small>@{{ user.username }}</small></td><td><span class="badge badge-{{ user.user_type }}">{{ user.user_type }}</span></td><td>{{ user.team.name if user.team else '—' }}</td><td>{{ user.email }}</td><td><a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-secondary">Edit</a>{% if user.user_type == 'student' %} <a href="{{ url_for('view_student_evaluations', student_id=user.id) }}" class="btn btn-sm btn-primary">Progress</a>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+</section>
 {% endblock %}

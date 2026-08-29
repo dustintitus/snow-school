@@ -21,9 +21,42 @@ class Program(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     
     teams = db.relationship('Team', backref='program', lazy=True)
+    profile = db.relationship('ProgramProfile', backref='program', uselist=False, cascade='all, delete-orphan')
+    enrollments = db.relationship('Enrollment', backref='program', lazy=True)
     
     def __repr__(self):
         return f'<Program {self.name}>'
+
+class ProgramProfile(db.Model):
+    """Catalogue and planning details that extend the legacy program record."""
+    id = db.Column(db.Integer, primary_key=True)
+    program_id = db.Column(db.Integer, db.ForeignKey('program.id'), nullable=False, unique=True)
+    category = db.Column(db.String(50), nullable=False, default='Seasonal program')
+    sport = db.Column(db.String(30), nullable=False, default='ski_snowboard')
+    age_min = db.Column(db.Integer, nullable=True)
+    age_max = db.Column(db.Integer, nullable=True)
+    ability_levels = db.Column(db.String(100), nullable=True)
+    duration_label = db.Column(db.String(60), nullable=True)
+    price_cents = db.Column(db.Integer, nullable=True)
+    capacity = db.Column(db.Integer, nullable=True)
+    season = db.Column(db.String(20), nullable=False, default='2026-2027')
+    source_url = db.Column(db.String(500), nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+class Enrollment(db.Model):
+    """Seasonal registration history used for retention and tenure reporting."""
+    __table_args__ = (db.UniqueConstraint('student_id', 'program_id', 'season', name='uq_enrollment_student_program_season'),)
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    program_id = db.Column(db.Integer, db.ForeignKey('program.id'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
+    season = db.Column(db.String(20), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='registered')
+    registered_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    student = db.relationship('User', backref='enrollments')
+    team = db.relationship('Team', backref='enrollments')
 
 class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)

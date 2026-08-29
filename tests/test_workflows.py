@@ -6,8 +6,8 @@ os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SECRET_KEY'] = 'test-secret-key'
 os.environ['FLASK_ENV'] = 'production'
 
-from app import app, seed_demo_accounts
-from models import db, AppSetting, Attendance, ClassSession, Program, Team, User
+from app import app, build_admin_dashboard, seed_demo_accounts, seed_horseshoe_catalogue
+from models import db, AppSetting, Attendance, ClassSession, Enrollment, Program, ProgramProfile, Team, User
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -142,6 +142,43 @@ class WorkflowTestCase(unittest.TestCase):
             self.assertEqual(coach.user_type, 'instructor')
             self.assertFalse(seed_demo_accounts('test-v1', passwords))
             self.assertIsNotNone(db.session.get(AppSetting, 'demo-account-seed:test-v1'))
+
+    def test_horseshoe_catalogue_seed_is_idempotent_and_backfills_enrollment(self):
+        with app.app_context():
+            self.assertTrue(seed_horseshoe_catalogue('test-catalogue'))
+            self.assertFalse(seed_horseshoe_catalogue('test-catalogue'))
+            self.assertEqual(ProgramProfile.query.filter_by(season='2026-2027', is_active=True).count(), 11)
+            self.assertIsNotNone(Program.query.filter_by(name='Adult Social Ski + Snowboard').first())
+            self.assertEqual(Enrollment.query.filter_by(student_id=self.student_id, season='2026-2027').count(), 1)
+
+    def test_dashboard_retention_uses_prior_enrollment_history(self):
+        with app.app_context():
+            seed_horseshoe_catalogue('dashboard-catalogue')
+            current = Enrollment.query.filter_by(student_id=self.student_id, season='2026-2027').one()
+            db.session.add(Enrollment(student_id=self.student_id, program_id=current.program_id, team_id=self.team_id, season='2025-2026', status='completed'))
+            db.session.commit()
+            dashboard = build_admin_dashboard()
+            self.assertEqual(dashboard['registered'], 1)
+            self.assertEqual(dashboard['returning'], 1)
+            self.assertEqual(dashboard['returning_rate'], 100)
+            self.assertEqual(dashboard['average_seasons'], 2.0)
+
+    def test_admin_dashboard_and_program_catalogue_render(self):
+        with app.app_context():
+            admin = User(username='ops-admin', email='ops@example.com', password_hash=generate_password_hash('password123'), full_name='Operations Admin', user_type='admin')
+            db.session.add(admin)
+            db.session.commit()
+            admin_id = admin.id
+            seed_horseshoe_catalogue('render-catalogue')
+        self.login_as(admin_id)
+        dashboard = self.client.get('/dashboard')
+        programs = self.client.get('/admin/programs')
+        self.assertEqual(dashboard.status_code, 200)
+        self.assertIn(b'Snow School overview', dashboard.data)
+        self.assertIn(b'Returning guests', dashboard.data)
+        self.assertEqual(programs.status_code, 200)
+        self.assertIn(b'Adult Social Ski + Snowboard', programs.data)
+        self.assertIn(b'Need capacity', programs.data)
 
 
 class CsrfTestCase(unittest.TestCase):

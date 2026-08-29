@@ -1,216 +1,59 @@
 {% extends "base.html" %}
-
 {% block title %}Manage Programs{% endblock %}
-
 {% block content %}
-<div class="dashboard-header">
-    <h2>Manage Programs</h2>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+<div class="dashboard-header admin-dashboard-header">
+    <div><p class="eyebrow">Horseshoe catalogue · {{ current_season }}</p><h2>Manage programs</h2><p class="dashboard-lede">Program setup, pricing, capacity, and season delivery in one place.</p></div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Dashboard</a>
 </div>
 
-<div class="card">
-    <h3>Create New Program</h3>
+<div class="catalog-summary">
+    <div><strong>{{ dashboard_data.active_programs }}</strong><span>Active programs</span></div>
+    <div><strong>{{ dashboard_data.registered }}</strong><span>Registered guests</span></div>
+    <div><strong>{{ dashboard_data.capacity_missing }}</strong><span>Need capacity</span></div>
+</div>
+
+<details class="card create-program-panel">
+    <summary><div><p class="eyebrow">Catalogue</p><h3>Add a program</h3></div><span class="btn btn-primary">+ New Program</span></summary>
     <form method="POST" action="{{ url_for('create_program') }}" id="createProgramForm">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-        <div class="form-group">
-            <label for="name">Program Name</label>
-            <input type="text" id="name" name="name" required>
-        </div>
-        <div class="form-group">
-            <label for="description">Description</label>
-            <textarea id="description" name="description" rows="3"></textarea>
-        </div>
-        
-        <!-- Program Schedule Section -->
-        <div class="form-section">
-            <h4>Program Schedule</h4>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="start_date">Start Date</label>
-                    <input type="date" id="start_date" name="start_date" required>
-                </div>
-                <div class="form-group">
-                    <label for="end_date">End Date (Optional)</label>
-                    <input type="date" id="end_date" name="end_date">
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="frequency_type">Schedule Type</label>
-                <select id="frequency_type" name="frequency_type" required onchange="updateFrequencyOptions()">
-                    <option value="consecutive">Consecutive Days</option>
-                    <option value="weekly">Weekly (Same Day)</option>
-                    <option value="custom">Custom Schedule</option>
-                </select>
-            </div>
-            
-            <div class="form-group" id="frequency_value_group">
-                <label for="frequency_value">Number of Sessions</label>
-                <input type="number" id="frequency_value" name="frequency_value" min="1" max="365" value="8" required>
-            </div>
-            
-            <div class="form-group" id="frequency_days_group" style="display: none;">
-                <label for="frequency_days">Day of Week</label>
-                <select id="frequency_days" name="frequency_days">
-                    <option value="monday">Monday</option>
-                    <option value="tuesday">Tuesday</option>
-                    <option value="wednesday">Wednesday</option>
-                    <option value="thursday">Thursday</option>
-                    <option value="friday">Friday</option>
-                    <option value="saturday">Saturday</option>
-                    <option value="sunday">Sunday</option>
-                </select>
-            </div>
-            
-            <div class="form-group" id="custom_days_group" style="display: none;">
-                <label>Select Days</label>
-                <div class="checkbox-group">
-                    <label><input type="checkbox" name="custom_days" value="monday"> Monday</label>
-                    <label><input type="checkbox" name="custom_days" value="tuesday"> Tuesday</label>
-                    <label><input type="checkbox" name="custom_days" value="wednesday"> Wednesday</label>
-                    <label><input type="checkbox" name="custom_days" value="thursday"> Thursday</label>
-                    <label><input type="checkbox" name="custom_days" value="friday"> Friday</label>
-                    <label><input type="checkbox" name="custom_days" value="saturday"> Saturday</label>
-                    <label><input type="checkbox" name="custom_days" value="sunday"> Sunday</label>
-                </div>
-            </div>
-        </div>
-        
-        <button type="submit" class="btn btn-primary">Create Program</button>
+        <div class="form-section"><h4>Program details</h4><div class="form-row"><div class="form-group"><label for="name">Program name</label><input id="name" name="name" required></div><div class="form-group"><label for="category">Category</label><input id="category" name="category" placeholder="8 Week Programs" required></div></div><div class="form-group"><label for="description">Description</label><textarea id="description" name="description" rows="3"></textarea></div>
+        <div class="form-row"><div class="form-group"><label for="sport">Sport</label><select id="sport" name="sport"><option value="ski_snowboard">Ski + Snowboard</option><option value="ski">Ski</option><option value="snowboard">Snowboard</option></select></div><div class="form-group"><label for="ability_levels">Ability</label><input id="ability_levels" name="ability_levels" placeholder="All abilities"></div></div>
+        <div class="form-row form-row-3"><div class="form-group"><label for="age_min">Minimum age</label><input type="number" min="0" id="age_min" name="age_min"></div><div class="form-group"><label for="age_max">Maximum age</label><input type="number" min="0" id="age_max" name="age_max"></div><div class="form-group"><label for="duration_label">Duration</label><input id="duration_label" name="duration_label" placeholder="8 weeks"></div></div>
+        <div class="form-row form-row-3"><div class="form-group"><label for="price">Starting price ($)</label><input type="number" min="0" step="0.01" id="price" name="price"></div><div class="form-group"><label for="capacity">Capacity</label><input type="number" min="1" id="capacity" name="capacity"></div><div class="form-group"><label for="season">Season</label><input id="season" name="season" value="{{ current_season }}"></div></div>
+        <div class="form-group"><label for="source_url">Reference URL</label><input type="url" id="source_url" name="source_url"></div><label class="checkbox-label"><input type="checkbox" name="is_active" checked> Active and visible in reporting</label></div>
+        <div class="form-section"><h4>Schedule</h4><div class="form-row"><div class="form-group"><label for="start_date">Start date</label><input type="date" id="start_date" name="start_date" required></div><div class="form-group"><label for="end_date">End date</label><input type="date" id="end_date" name="end_date"></div></div><div class="form-row"><div class="form-group"><label for="frequency_type">Schedule type</label><select id="frequency_type" name="frequency_type"><option value="consecutive">Consecutive days</option><option value="weekly">Weekly</option><option value="custom">Custom</option></select></div><div class="form-group"><label for="frequency_value">Sessions</label><input type="number" min="1" max="365" value="8" id="frequency_value" name="frequency_value" required></div></div><div class="form-group"><label for="frequency_days">Day(s)</label><input id="frequency_days" name="frequency_days" placeholder="saturday or saturday,sunday"></div></div>
+        <button class="btn btn-primary" type="submit">Create Program</button>
     </form>
-</div>
+</details>
 
-<div class="card">
-    <h3>Existing Programs</h3>
-    {% if programs %}
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Schedule</th>
-                <th>Classes/Teams</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for program in programs %}
-            <tr>
-                <td>
-                    <strong>{{ program.name }}</strong>
-                    <div id="edit-form-{{ program.id }}" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--bg-light); border-radius: var(--radius);">
-                        <form method="POST" action="{{ url_for('update_program', program_id=program.id) }}">
-                            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-                            <div class="form-group">
-                                <label for="name-{{ program.id }}">Name</label>
-                                <input type="text" id="name-{{ program.id }}" name="name" value="{{ program.name }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="description-{{ program.id }}">Description</label>
-                                <textarea id="description-{{ program.id }}" name="description" rows="2">{{ program.description }}</textarea>
-                            </div>
-                            <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                            <button type="button" onclick="toggleEdit({{ program.id }})" class="btn btn-sm btn-secondary">Cancel</button>
-                        </form>
-                    </div>
-                </td>
-                <td>{{ program.description }}</td>
-                <td>
-                    <div class="schedule-info">
-                        <strong>{{ program.frequency_type.title() }}</strong>
-                        {% if program.start_date %}
-                        <br><small>Start: {{ program.start_date.strftime('%b %d, %Y') }}</small>
-                        {% endif %}
-                        {% if program.end_date %}
-                        <br><small>End: {{ program.end_date.strftime('%b %d, %Y') }}</small>
-                        {% endif %}
-                        <br><small>{{ program.frequency_value }} sessions</small>
-                        {% if program.frequency_days %}
-                        <br><small>{{ program.frequency_days.title() }}</small>
-                        {% endif %}
-                    </div>
-                </td>
-                <td>{{ program.teams|length }} {% if program.teams|length == 1 %}class/team{% else %}classes/teams{% endif %}</td>
-                <td>
-                    <button onclick="toggleEdit({{ program.id }})" class="btn btn-sm btn-secondary">Edit</button>
-                    {% if program.teams|length == 0 %}
-                    <form method="POST" action="{{ url_for('delete_program', program_id=program.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this program?');">
-                        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-                        <button type="submit" class="btn btn-sm" style="background: var(--error-color); color: white; margin-top: 0.25rem;">Delete</button>
-                    </form>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>No programs yet. Create one above.</p>
-    {% endif %}
+<div class="program-catalog-grid">
+{% for program in programs %}{% set profile = program.profile %}
+<article class="program-admin-card {{ '' if profile and profile.is_active else 'is-inactive' }}">
+    <div class="program-card-top"><span class="badge">{{ profile.category if profile else 'Legacy program' }}</span><span class="program-status">{{ 'Active' if profile and profile.is_active else 'Inactive' }}</span></div>
+    <h3>{{ program.name }}</h3><p>{{ program.description or 'No description added.' }}</p>
+    <div class="program-facts">
+        <div><span>Audience</span><strong>{% if profile and profile.age_min is not none %}Ages {{ profile.age_min }}{% if profile.age_max is not none %}–{{ profile.age_max }}{% else %}+{% endif %}{% else %}All ages{% endif %}</strong></div>
+        <div><span>Format</span><strong>{{ profile.duration_label if profile and profile.duration_label else program.frequency_value ~ ' sessions' }}</strong></div>
+        <div><span>Price</span><strong>{% if profile and profile.price_cents is not none %}From ${{ '%.2f'|format(profile.price_cents / 100) }}{% else %}Contact / TBD{% endif %}</strong></div>
+        <div><span>Registration</span><strong>{% set row = dashboard_data.program_rows|selectattr('program.id', 'equalto', program.id)|first %}{{ row.registered if row else 0 }}{% if profile and profile.capacity %} / {{ profile.capacity }}{% endif %}</strong></div>
+    </div>
+    <div class="program-card-actions"><button onclick="toggleEdit({{ program.id }})" class="btn btn-sm btn-secondary">Edit</button>{% if profile and profile.source_url %}<a href="{{ profile.source_url }}" target="_blank" rel="noopener" class="inline-link">Source <span>↗</span></a>{% endif %}</div>
+    <div id="edit-form-{{ program.id }}" class="program-edit-panel" hidden>
+        <form method="POST" action="{{ url_for('update_program', program_id=program.id) }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="form-row"><div class="form-group"><label>Name</label><input name="name" value="{{ program.name }}" required></div><div class="form-group"><label>Category</label><input name="category" value="{{ profile.category if profile else 'Seasonal program' }}"></div></div>
+            <div class="form-group"><label>Description</label><textarea name="description" rows="2">{{ program.description or '' }}</textarea></div>
+            <div class="form-row"><div class="form-group"><label>Sport</label><select name="sport"><option value="ski_snowboard" {{ 'selected' if not profile or profile.sport == 'ski_snowboard' }}>Ski + Snowboard</option><option value="ski" {{ 'selected' if profile and profile.sport == 'ski' }}>Ski</option><option value="snowboard" {{ 'selected' if profile and profile.sport == 'snowboard' }}>Snowboard</option></select></div><div class="form-group"><label>Ability</label><input name="ability_levels" value="{{ profile.ability_levels if profile else '' }}"></div></div>
+            <div class="form-row form-row-3"><div class="form-group"><label>Min age</label><input type="number" name="age_min" value="{{ profile.age_min if profile and profile.age_min is not none else '' }}"></div><div class="form-group"><label>Max age</label><input type="number" name="age_max" value="{{ profile.age_max if profile and profile.age_max is not none else '' }}"></div><div class="form-group"><label>Duration</label><input name="duration_label" value="{{ profile.duration_label if profile else '' }}"></div></div>
+            <div class="form-row form-row-3"><div class="form-group"><label>Starting price ($)</label><input type="number" step="0.01" name="price" value="{{ '%.2f'|format(profile.price_cents / 100) if profile and profile.price_cents is not none else '' }}"></div><div class="form-group"><label>Capacity</label><input type="number" min="1" name="capacity" value="{{ profile.capacity if profile and profile.capacity else '' }}"></div><div class="form-group"><label>Season</label><input name="season" value="{{ profile.season if profile else current_season }}"></div></div>
+            <div class="form-group"><label>Reference URL</label><input type="url" name="source_url" value="{{ profile.source_url if profile else '' }}"></div><label class="checkbox-label"><input type="checkbox" name="is_active" {{ 'checked' if profile and profile.is_active }}> Active</label>
+            <div class="program-edit-actions"><button class="btn btn-sm btn-primary" type="submit">Save changes</button><button class="btn btn-sm btn-secondary" type="button" onclick="toggleEdit({{ program.id }})">Cancel</button></div>
+        </form>
+    </div>
+</article>
+{% endfor %}
 </div>
-
 <script>
-function toggleEdit(programId) {
-    const form = document.getElementById('edit-form-' + programId);
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
-}
-
-function updateFrequencyOptions() {
-    const frequencyType = document.getElementById('frequency_type').value;
-    const frequencyDaysGroup = document.getElementById('frequency_days_group');
-    const customDaysGroup = document.getElementById('custom_days_group');
-    const frequencyValueGroup = document.getElementById('frequency_value_group');
-    
-    // Hide all optional groups first
-    frequencyDaysGroup.style.display = 'none';
-    customDaysGroup.style.display = 'none';
-    
-    // Show relevant groups based on selection
-    if (frequencyType === 'weekly') {
-        frequencyDaysGroup.style.display = 'block';
-        frequencyValueGroup.querySelector('label').textContent = 'Number of Weeks';
-    } else if (frequencyType === 'custom') {
-        customDaysGroup.style.display = 'block';
-        frequencyValueGroup.querySelector('label').textContent = 'Number of Sessions';
-    } else {
-        frequencyValueGroup.querySelector('label').textContent = 'Number of Sessions';
-    }
-}
-
-// Set default date to today
-document.addEventListener('DOMContentLoaded', function() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('start_date').value = today;
-    
-    // Initialize frequency options
-    updateFrequencyOptions();
-});
-
-// Handle custom days selection
-function handleCustomDays() {
-    const checkboxes = document.querySelectorAll('input[name="custom_days"]:checked');
-    const customDaysInput = document.createElement('input');
-    customDaysInput.type = 'hidden';
-    customDaysInput.name = 'frequency_days';
-    customDaysInput.value = Array.from(checkboxes).map(cb => cb.value).join(',');
-    
-    // Remove existing hidden input if any
-    const existing = document.querySelector('input[name="frequency_days"][type="hidden"]');
-    if (existing) existing.remove();
-    
-    // Add new hidden input
-    document.getElementById('createProgramForm').appendChild(customDaysInput);
-}
-
-// Add event listeners to custom day checkboxes
-document.addEventListener('DOMContentLoaded', function() {
-    const checkboxes = document.querySelectorAll('input[name="custom_days"]');
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', handleCustomDays);
-    });
-});
+function toggleEdit(id){const panel=document.getElementById('edit-form-'+id);panel.hidden=!panel.hidden;}
+document.addEventListener('DOMContentLoaded',()=>{const input=document.getElementById('start_date');if(input&&!input.value)input.value=new Date().toISOString().split('T')[0];});
 </script>
 {% endblock %}
-
-

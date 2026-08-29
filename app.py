@@ -3,7 +3,7 @@ import secrets
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, AppSetting, User, Evaluation, Program, Team, Attendance, ClassSession
+from models import db, AppSetting, User, Evaluation, Program, ProgramProfile, Enrollment, Team, Attendance, ClassSession
 from datetime import datetime, date
 from config import config
 import logging
@@ -78,6 +78,7 @@ def instructor_can_access_student(student):
     )
 
 SESSION_STATUSES = ('not_started', 'checked_in', 'on_hill', 'break', 'completed')
+CURRENT_SEASON = os.environ.get('SNOW_SCHOOL_SEASON', '2026-2027')
 
 def parse_session_date(raw_value, fallback=None):
     """Parse an ISO date used by coach tools."""
@@ -120,12 +121,35 @@ def program_schedule_from_form():
     if frequency_type == 'weekly':
         frequency_days = request.form.get('frequency_days')
     elif frequency_type == 'custom':
-        frequency_days = ','.join(request.form.getlist('custom_days'))
+        selected_days = request.form.getlist('custom_days')
+        if not selected_days and request.form.get('frequency_days'):
+            selected_days = [day.strip().lower() for day in request.form.get('frequency_days', '').split(',') if day.strip()]
+        valid_days = {'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'}
+        if any(day not in valid_days for day in selected_days):
+            raise ValueError('Custom schedule days must be valid weekday names')
+        frequency_days = ','.join(selected_days)
         if not frequency_days:
             raise ValueError('Choose at least one custom schedule day')
     else:
         frequency_days = None
     return frequency_type, frequency_value, frequency_days, start_date, end_date
+
+def update_program_profile_from_form(program):
+    """Create or update administrator-managed catalogue metadata."""
+    profile = program.profile or ProgramProfile(program=program)
+    profile.category = request.form.get('category', 'Seasonal program').strip() or 'Seasonal program'
+    profile.sport = request.form.get('sport', 'ski_snowboard')
+    profile.age_min = int(request.form['age_min']) if request.form.get('age_min') else None
+    profile.age_max = int(request.form['age_max']) if request.form.get('age_max') else None
+    profile.ability_levels = request.form.get('ability_levels', '').strip() or None
+    profile.duration_label = request.form.get('duration_label', '').strip() or None
+    profile.price_cents = round(float(request.form['price']) * 100) if request.form.get('price') else None
+    profile.capacity = int(request.form['capacity']) if request.form.get('capacity') else None
+    profile.season = request.form.get('season', CURRENT_SEASON).strip() or CURRENT_SEASON
+    profile.source_url = request.form.get('source_url', '').strip() or None
+    profile.is_active = request.form.get('is_active') == 'on'
+    db.session.add(profile)
+    return profile
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -160,6 +184,138 @@ def update_student_participation_from_team(student):
         # Programs likely for RIP (Snowboarding - CASI)
         elif 'Snowboarding' in program_name or 'Trail Blazers' in program_name:
             student.participates_snowboarder = True
+
+def sync_student_enrollment(student, season=CURRENT_SEASON):
+    """Record the student's current program without duplicating seasonal history."""
+    if student.user_type != 'student' or not student.team_id:
+        return None
+    team = db.session.get(Team, student.team_id)
+    if not team:
+        return None
+    enrollment = Enrollment.query.filter_by(
+        student_id=student.id, program_id=team.program_id, season=season
+    ).first()
+    if enrollment is None:
+        enrollment = Enrollment(
+            student_id=student.id,
+            program_id=team.program_id,
+            team_id=team.id,
+            season=season,
+            status='registered',
+            registered_at=student.created_at or datetime.utcnow(),
+        )
+        db.session.add(enrollment)
+    else:
+        enrollment.team_id = team.id
+        enrollment.status = 'registered'
+    return enrollment
+
+def cancel_current_enrollment(student_id, program_id, season=CURRENT_SEASON):
+    enrollment = Enrollment.query.filter_by(student_id=student_id, program_id=program_id, season=season).first()
+    if enrollment:
+        enrollment.status = 'cancelled'
+
+def seed_horseshoe_catalogue(seed_version='2026-2027-v1'):
+    """Idempotently add the public Horseshoe Snow School catalogue."""
+    setting_key = f'horseshoe-catalogue:{seed_version}'
+    if db.session.get(AppSetting, setting_key):
+        return False
+
+    snow_school_url = 'https://horseshoeresort.com/ski/snow-school/'
+    eight_week_url = f'{snow_school_url}8-week-programs/'
+    catalogue = (
+        ('Snowflakes', 'Small-group ski and snowboard development for ages 4–5.', '8 Week Programs', 'ski_snowboard', 4, 5, 'All abilities', '8 weeks', None, 'weekly', 8, eight_week_url),
+        ('High Flyers', 'Progressive ski and snowboard instruction for ages 6–10.', '8 Week Programs', 'ski_snowboard', 6, 10, 'All abilities', '8 weeks', None, 'weekly', 8, eight_week_url),
+        ('Trailblazers', 'Progressive ski and snowboard instruction for ages 11–17.', '8 Week Programs', 'ski_snowboard', 11, 17, 'All abilities', '8 weeks', None, 'weekly', 8, eight_week_url),
+        ('Adult Social Ski + Snowboard', 'Social instruction groups for adult skiers and snowboarders.', '8 Week Programs', 'ski_snowboard', 18, None, 'Beginner to advanced', '8 weeks', 49900, 'weekly', 8, f'{eight_week_url}adult_ski_program/'),
+        ('Intro to Terrain Park', 'Freestyle introduction for skiers and snowboarders ages 6–14.', '8 Week Programs', 'ski_snowboard', 6, 14, 'Levels 3–5', '8 weeks', None, 'weekly', 8, eight_week_url),
+        ('Discover Ski', 'Beginner group lesson with lift ticket and equipment rental.', 'Discover Lessons', 'ski', 6, None, 'First-time / beginner', '2 hours', 16900, 'consecutive', 1, f'{snow_school_url}discover-lessons/'),
+        ('Discover Snowboard', 'Beginner group lesson with lift ticket and equipment rental.', 'Discover Lessons', 'snowboard', 6, None, 'First-time / beginner', '2 hours', 16900, 'consecutive', 1, f'{snow_school_url}discover-lessons/'),
+        ('1 Hour Private Ski/Snowboard', 'One-to-one ski or snowboard lesson for guests ages 6+.', 'Private Lessons', 'ski_snowboard', 6, None, 'All abilities', '1 hour', 15900, 'consecutive', 1, f'{snow_school_url}private-lessons/'),
+        ('2 Hour Private Ski/Snowboard', 'Extended private lesson for green- and blue-level guests ages 6+.', 'Private Lessons', 'ski_snowboard', 6, None, 'Green / blue levels', '2 hours', 29900, 'consecutive', 1, f'{snow_school_url}private-lessons/'),
+        ('1 Hour Kinder Private', 'One-to-one ski or snowboard lesson for children ages 3–5.', 'Private Lessons', 'ski_snowboard', 3, 5, 'All abilities', '1 hour', 15900, 'consecutive', 1, f'{snow_school_url}private-lessons/'),
+        ('School Group Programs', 'Custom winter lesson programming for school and recreation groups.', 'School Groups', 'ski_snowboard', None, None, 'Group-specific', 'Custom', None, 'custom', 1, 'https://horseshoeresort.com/groups/recreation-groups/school-groups/'),
+    )
+    for name, description, category, sport, age_min, age_max, levels, duration, price, frequency_type, sessions, source_url in catalogue:
+        program = Program.query.filter_by(name=name).first()
+        if program is None:
+            program = Program(name=name, description=description, frequency_type=frequency_type, frequency_value=sessions)
+            db.session.add(program)
+            db.session.flush()
+        profile = ProgramProfile.query.filter_by(program_id=program.id).first()
+        if profile is None:
+            profile = ProgramProfile(program_id=program.id)
+            db.session.add(profile)
+        profile.category = category
+        profile.sport = sport
+        profile.age_min = age_min
+        profile.age_max = age_max
+        profile.ability_levels = levels
+        profile.duration_label = duration
+        profile.price_cents = price
+        profile.season = CURRENT_SEASON
+        profile.source_url = source_url
+        profile.is_active = True
+
+    db.session.flush()
+    for student in User.query.filter_by(user_type='student').filter(User.team_id.isnot(None)).all():
+        sync_student_enrollment(student)
+    db.session.add(AppSetting(key=setting_key, value='applied'))
+    db.session.commit()
+    return True
+
+def build_admin_dashboard(season=CURRENT_SEASON):
+    """Build a source-backed operational summary from programs and enrollment history."""
+    enrollments = Enrollment.query.all()
+    current = [item for item in enrollments if item.season == season and item.status in {'registered', 'completed'}]
+    previous_students = {item.student_id for item in enrollments if item.season != season and item.status in {'registered', 'completed'}}
+    current_students = {item.student_id for item in current}
+    returning_students = current_students & previous_students
+    seasons_by_student = {}
+    for item in enrollments:
+        if item.status in {'registered', 'completed'}:
+            seasons_by_student.setdefault(item.student_id, set()).add(item.season)
+
+    attendance = Attendance.query.all()
+    attendance_rate = round(100 * sum(1 for item in attendance if item.attended) / len(attendance)) if attendance else None
+    profiles = ProgramProfile.query.filter_by(is_active=True, season=season).all()
+    program_rows = []
+    category_counts = {}
+    for profile in profiles:
+        program_enrollments = [item for item in current if item.program_id == profile.program_id]
+        enrolled_ids = {item.student_id for item in program_enrollments}
+        registered = len(enrolled_ids)
+        returning = len(enrolled_ids & previous_students)
+        capacity = profile.capacity
+        utilization = round(100 * registered / capacity) if capacity else None
+        category_counts[profile.category] = category_counts.get(profile.category, 0) + registered
+        program_rows.append({
+            'program': profile.program,
+            'profile': profile,
+            'registered': registered,
+            'returning': returning,
+            'returning_rate': round(100 * returning / registered) if registered else 0,
+            'capacity': capacity,
+            'utilization': utilization,
+            'teams': len(profile.program.teams),
+            'coaches': len({team.instructor_id for team in profile.program.teams}),
+        })
+    program_rows.sort(key=lambda row: (-row['registered'], row['program'].name))
+    average_seasons = round(sum(len(seasons_by_student.get(student_id, {season})) for student_id in current_students) / len(current_students), 1) if current_students else 0
+    return {
+        'season': season,
+        'active_programs': len(profiles),
+        'registered': len(current_students),
+        'returning': len(returning_students),
+        'returning_rate': round(100 * len(returning_students) / len(current_students)) if current_students else 0,
+        'average_seasons': average_seasons,
+        'waitlisted': sum(1 for item in enrollments if item.season == season and item.status == 'waitlisted'),
+        'attendance_rate': attendance_rate,
+        'capacity_missing': sum(1 for profile in profiles if not profile.capacity),
+        'program_rows': program_rows,
+        'category_counts': sorted(category_counts.items(), key=lambda item: (-item[1], item[0])),
+        'history_seasons': len({item.season for item in enrollments}),
+    }
 
 def init_db():
     """Initialize database with sample data"""
@@ -244,6 +400,7 @@ def init_db():
             db.session.add(student)
         
         db.session.commit()
+        seed_horseshoe_catalogue()
 
 def seed_demo_accounts(seed_version, passwords):
     """Apply an explicitly versioned demo-account reset exactly once."""
@@ -346,7 +503,8 @@ def dashboard():
     
     if user_type == 'admin':
         users = User.query.all()
-        return render_template('dashboard_admin.html', users=users)
+        dashboard_data = build_admin_dashboard()
+        return render_template('dashboard_admin.html', users=users, dashboard_data=dashboard_data)
     elif user_type == 'instructor':
         # Get students from instructor's teams
         instructor_teams = Team.query.filter_by(instructor_id=current_user.id).all()
@@ -455,6 +613,7 @@ def register():
             team = Team.query.get_or_404(int(team_id))
             new_user.instructor_id = team.instructor_id
             update_student_participation_from_team(new_user)
+            sync_student_enrollment(new_user)
         
         db.session.commit()
         flash('User created successfully', 'success')
@@ -506,8 +665,11 @@ def edit_user(user_id):
         if user_type == 'student':
             instructor_id = request.form.get('instructor_id')
             team_id = request.form.get('team_id')
-            
+            old_program_id = user.team.program_id if user.team else None
             user.team_id = int(team_id) if team_id else None
+            new_program_id = Team.query.get_or_404(user.team_id).program_id if user.team_id else None
+            if old_program_id and old_program_id != new_program_id:
+                cancel_current_enrollment(user.id, old_program_id)
             if user.team_id:
                 user.instructor_id = Team.query.get_or_404(user.team_id).instructor_id
             else:
@@ -523,6 +685,7 @@ def edit_user(user_id):
             # Auto-update participation flags based on team program if team is assigned
             if team_id:
                 update_student_participation_from_team(user)
+                sync_student_enrollment(user)
         else:
             # Clear student-specific fields for non-students
             user.instructor_id = None
@@ -731,8 +894,9 @@ def manage_programs():
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
     
-    programs = Program.query.all()
-    return render_template('manage_programs.html', programs=programs)
+    programs = Program.query.order_by(Program.name).all()
+    dashboard_data = build_admin_dashboard()
+    return render_template('manage_programs.html', programs=programs, dashboard_data=dashboard_data, current_season=CURRENT_SEASON)
 
 @app.route('/admin/teams')
 @login_required
@@ -789,6 +953,12 @@ def create_program():
         end_date=end_date_obj
     )
     db.session.add(program)
+    try:
+        update_program_profile_from_form(program)
+    except ValueError:
+        db.session.rollback()
+        flash('Age, price, and capacity must be valid numbers', 'error')
+        return redirect(url_for('manage_programs'))
     db.session.commit()
     flash('Program created successfully', 'success')
     return redirect(url_for('manage_programs'))
@@ -810,6 +980,12 @@ def update_program(program_id):
         except ValueError as exc:
             flash(str(exc), 'error')
             return redirect(url_for('manage_programs'))
+    try:
+        update_program_profile_from_form(program)
+    except ValueError:
+        db.session.rollback()
+        flash('Age, price, and capacity must be valid numbers', 'error')
+        return redirect(url_for('manage_programs'))
     
     db.session.commit()
     flash('Program updated successfully', 'success')
@@ -853,7 +1029,9 @@ def update_team(team_id):
         # Keep legacy instructor assignment synchronized with team ownership.
         student.instructor_id = team.instructor_id
         if old_program_id != team.program_id:
+            cancel_current_enrollment(student.id, old_program_id)
             update_student_participation_from_team(student)
+            sync_student_enrollment(student)
     
     db.session.commit()
     flash('Team updated successfully', 'success')
