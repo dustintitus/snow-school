@@ -5,11 +5,24 @@ import { WebView } from 'react-native-webview';
 
 type School = { name: string; location: string; portalUrl: string };
 type AppScreen = 'splash' | 'school' | 'portal';
+type PortalTab = 'today' | 'records' | null;
 
 const SCHOOL_DIRECTORY: Record<string, School> = {
   HORSESHOE: { name: 'Horseshoe Valley', location: 'Barrie, Ontario', portalUrl: 'https://snowschool.app/login?next=/coach' },
 };
 const SCHOOL_ALIASES: Record<string, string> = { HORSESHOEVALLEY: 'HORSESHOE', HSV: 'HORSESHOE' };
+const APP_ORIGIN = 'https://snowschool.app';
+const NATIVE_SHELL_CSS = `
+  (function () {
+    var style = document.getElementById('snow-school-native-shell');
+    if (!style) {
+      style = document.createElement('style');
+      style.id = 'snow-school-native-shell';
+      style.textContent = '.site-header,.utility-bar,.site-footer,.coach-bottom-nav{display:none!important}.main-content{padding-top:24px!important;padding-bottom:32px!important}';
+      document.head.appendChild(style);
+    }
+  })(); true;
+`;
 
 function resolveSchool(value: string) {
   const normalized = value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -23,6 +36,7 @@ export default function App() {
   const [schoolError, setSchoolError] = useState('');
   const [school, setSchool] = useState<School | null>(null);
   const [canGoBack, setCanGoBack] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState('');
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
@@ -50,6 +64,17 @@ export default function App() {
     setSchool(match);
     setOffline(false);
     setScreen('portal');
+  };
+
+  const activeTab: PortalTab = currentUrl.includes('/coach')
+    ? 'today'
+    : currentUrl.includes('/dashboard')
+      ? 'records'
+      : null;
+  const showPortalNavigation = Boolean(currentUrl && !currentUrl.includes('/login'));
+
+  const navigatePortal = (path: string) => {
+    webView.current?.injectJavaScript(`window.location.assign(${JSON.stringify(`${APP_ORIGIN}${path}`)}); true;`);
   };
 
   if (screen === 'splash') {
@@ -109,9 +134,9 @@ export default function App() {
     <SafeAreaView style={styles.app}>
       <StatusBar style="light" />
       <View style={styles.topBar}>
-        <TouchableOpacity accessibilityLabel="Change school" accessibilityRole="button" style={styles.changeSchoolButton} onPress={() => setScreen('school')}><Text style={styles.backChevron}>‹</Text></TouchableOpacity>
-        <View><Text style={styles.kicker}>{school?.location.toUpperCase()}</Text><Text style={styles.title}>{school?.name}</Text></View>
-        {canGoBack ? <TouchableOpacity style={styles.webBackButton} onPress={() => webView.current?.goBack()}><Text style={styles.webBackText}>Back</Text></TouchableOpacity> : null}
+        {canGoBack ? <TouchableOpacity accessibilityLabel="Go back" accessibilityRole="button" style={styles.headerButton} onPress={() => webView.current?.goBack()}><Text style={styles.backChevron}>‹</Text></TouchableOpacity> : <View style={styles.headerButton} />}
+        <View style={styles.headerTitle}><Text style={styles.kicker}>{currentUrl.includes('/login') ? 'COACH PORTAL' : school?.location.toUpperCase()}</Text><Text style={styles.title}>{currentUrl.includes('/login') ? 'Sign in' : school?.name}</Text></View>
+        <TouchableOpacity accessibilityLabel="Change school" accessibilityRole="button" style={styles.headerButton} onPress={() => setScreen('school')}><Text style={styles.schoolMenu}>•••</Text></TouchableOpacity>
       </View>
       {offline ? <View style={styles.offlineBanner}><Text style={styles.offlineText}>You’re offline. Reconnect to continue.</Text><TouchableOpacity onPress={() => webView.current?.reload()}><Text style={styles.retry}>Retry</Text></TouchableOpacity></View> : null}
       <WebView
@@ -123,12 +148,26 @@ export default function App() {
         allowsBackForwardNavigationGestures
         setSupportMultipleWindows={false}
         startInLoadingState
-        onNavigationStateChange={(state) => setCanGoBack(state.canGoBack)}
+        injectedJavaScript={NATIVE_SHELL_CSS}
+        injectedJavaScriptBeforeContentLoaded={NATIVE_SHELL_CSS}
+        onNavigationStateChange={(state) => { setCanGoBack(state.canGoBack); setCurrentUrl(state.url); }}
         onLoad={() => setOffline(false)}
         onError={() => setOffline(true)}
         renderLoading={() => <View style={styles.loading}><ActivityIndicator size="large" color="#b43d29" /><Text style={styles.loadingText}>Opening {school?.name}…</Text></View>}
         style={styles.webView}
       />
+      {showPortalNavigation ? (
+        <View style={styles.bottomNav} accessibilityRole="tablist">
+          <TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'today' }} onPress={() => navigatePortal('/coach')} style={styles.navItem}>
+            <Text style={[styles.navIcon, activeTab === 'today' ? styles.navActive : null]}>●</Text>
+            <Text style={[styles.navLabel, activeTab === 'today' ? styles.navActive : null]}>Today</Text>
+          </TouchableOpacity>
+          <TouchableOpacity accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'records' }} onPress={() => navigatePortal('/dashboard')} style={styles.navItem}>
+            <Text style={[styles.navIcon, activeTab === 'records' ? styles.navActive : null]}>▦</Text>
+            <Text style={[styles.navLabel, activeTab === 'records' ? styles.navActive : null]}>Records</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -166,16 +205,21 @@ const styles = StyleSheet.create({
   helpText: { color: '#73807c', fontSize: 12, textAlign: 'center', marginTop: 17 },
   helpCode: { color: '#15352f', fontWeight: '800' },
   topBar: { minHeight: 62, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#15352f' },
-  changeSchoolButton: { width: 38, height: 42, alignItems: 'center', justifyContent: 'center' },
+  headerButton: { width: 42, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, alignItems: 'center' },
   backChevron: { color: '#ffffff', fontSize: 34, lineHeight: 36, fontWeight: '300' },
+  schoolMenu: { color: '#ffffff', fontSize: 16, fontWeight: '800', letterSpacing: 2, paddingBottom: 7 },
   kicker: { color: '#9bb0aa', fontSize: 8, fontWeight: '700', letterSpacing: 1.4 },
   title: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
-  webBackButton: { marginLeft: 'auto', paddingVertical: 10, paddingLeft: 18 },
-  webBackText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
   offlineBanner: { paddingHorizontal: 16, minHeight: 46, backgroundColor: '#f5e3e0', flexDirection: 'row', alignItems: 'center' },
   offlineText: { flex: 1, color: '#771f19', fontSize: 12 },
   retry: { color: '#771f19', fontWeight: '700', textTransform: 'uppercase' },
   webView: { flex: 1, backgroundColor: '#fbfaf6' },
+  bottomNav: { minHeight: 66, flexDirection: 'row', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#dce1de' },
+  navItem: { flex: 1, minHeight: 62, alignItems: 'center', justifyContent: 'center', gap: 3 },
+  navIcon: { color: '#8b9692', fontSize: 17 },
+  navLabel: { color: '#6d7975', fontSize: 10, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase' },
+  navActive: { color: '#b43d29' },
   loading: { position: 'absolute', inset: 0, backgroundColor: '#fbfaf6', alignItems: 'center', justifyContent: 'center', gap: 14 },
   loadingText: { color: '#15352f', fontSize: 14 },
 });
