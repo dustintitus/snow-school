@@ -25,7 +25,7 @@
                     {% if current_user.is_authenticated %}
                         <span class="user-chip"><span class="user-dot"></span>{{ current_user.full_name }} · {{ current_user.user_type|title }}</span>
                         <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
-                        <a href="{{ url_for('logout') }}" class="btn btn-nav">Sign out</a>
+                        <form method="POST" action="{{ url_for('logout') }}" class="nav-form"><input type="hidden" name="_csrf_token" value="{{ csrf_token }}"><button type="submit" class="btn btn-nav">Sign out</button></form>
                     {% else %}
                         <a href="{{ url_for('login') }}" class="nav-link">Member access</a>
                         <a href="{{ url_for('login') }}" class="btn btn-nav">Sign in</a>

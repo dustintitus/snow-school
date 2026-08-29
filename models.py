@@ -56,6 +56,7 @@ class User(UserMixin, db.Model):
         return f'<User {self.username}>'
 
 class Attendance(db.Model):
+    __table_args__ = (db.UniqueConstraint('student_id', 'team_id', 'session_date', name='uq_attendance_student_team_date'),)
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
@@ -73,6 +74,7 @@ class Attendance(db.Model):
         return f'<Attendance {self.student.username} - {self.session_date}>'
 
 class Evaluation(db.Model):
+    __table_args__ = (db.UniqueConstraint('student_id', 'sport_type', 'level', name='uq_evaluation_student_sport_level'),)
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     instructor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

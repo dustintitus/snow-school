@@ -7,6 +7,7 @@
     <div class="auth-card">
         <h2>Register New User</h2>
         <form method="POST" action="{{ url_for('register') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required>
@@ -26,9 +27,9 @@
             <div class="form-group">
                 <label for="user_type">User Type</label>
                 <select id="user_type" name="user_type" required onchange="toggleStudentFields()">
-                    <option value="admin">Admin</option>
-                    <option value="instructor">Instructor</option>
                     <option value="student">Student</option>
+                    <option value="instructor">Instructor</option>
+                    <option value="admin">Admin</option>
                 </select>
             </div>
             <input type="hidden" id="instructor_id" name="instructor_id" value="">

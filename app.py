@@ -1,17 +1,23 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+import secrets
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Evaluation, Program, Team, Attendance
-from datetime import datetime
+from datetime import datetime, date
 from config import config
 import logging
 
 app = Flask(__name__)
 
 # Load configuration from environment
-env = os.environ.get('FLASK_ENV', 'development')
+env = os.environ.get('FLASK_ENV', 'production' if os.environ.get('VERCEL') else 'development')
 app.config.from_object(config.get(env, config['development']))
+if env == 'production':
+    if not os.environ.get('DATABASE_URL'):
+        raise RuntimeError('DATABASE_URL is required in production')
+    if not os.environ.get('SECRET_KEY'):
+        raise RuntimeError('SECRET_KEY is required in production')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +27,81 @@ db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+@app.context_processor
+def inject_csrf_token():
+    """Expose a per-session CSRF token to every form."""
+    token = session.get('_csrf_token')
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session['_csrf_token'] = token
+    return {'csrf_token': token}
+
+@app.before_request
+def protect_state_changes():
+    """Reject forged state-changing requests before route handlers run."""
+    if request.method == 'POST' and app.config.get('CSRF_ENABLED', True):
+        submitted = request.form.get('_csrf_token', '')
+        expected = session.get('_csrf_token', '')
+        if not submitted or not expected or not secrets.compare_digest(submitted, expected):
+            abort(400, description='Invalid or missing security token')
+
+def is_admin():
+    return current_user.is_authenticated and current_user.user_type == 'admin'
+
+def instructor_owns_team(team):
+    return current_user.is_authenticated and current_user.user_type == 'instructor' and team.instructor_id == current_user.id
+
+def instructor_can_access_student(student):
+    """Team ownership is authoritative; instructor_id remains a legacy fallback."""
+    if current_user.user_type != 'instructor' or student.user_type != 'student':
+        return False
+    return bool(
+        (student.team and student.team.instructor_id == current_user.id)
+        or student.instructor_id == current_user.id
+    )
+
+def score_from_form(field):
+    """Parse and validate a 0-10 score without trusting browser constraints."""
+    try:
+        value = float(request.form.get(field, ''))
+    except (TypeError, ValueError):
+        raise ValueError(f'{field.replace("_", " ").title()} must be a number')
+    if not 0 <= value <= 10:
+        raise ValueError(f'{field.replace("_", " ").title()} must be between 0 and 10')
+    return value
+
+def program_schedule_from_form():
+    """Validate scheduling fields and normalize selected weekdays."""
+    frequency_type = request.form.get('frequency_type', 'consecutive')
+    if frequency_type not in {'consecutive', 'weekly', 'custom'}:
+        raise ValueError('Invalid schedule type')
+    try:
+        frequency_value = int(request.form.get('frequency_value', ''))
+    except (TypeError, ValueError):
+        raise ValueError('Number of sessions must be a whole number')
+    if not 1 <= frequency_value <= 365:
+        raise ValueError('Number of sessions must be between 1 and 365')
+    try:
+        start_raw = request.form.get('start_date', '')
+        end_raw = request.form.get('end_date', '')
+        start_date = datetime.strptime(start_raw, '%Y-%m-%d').date() if start_raw else None
+        end_date = datetime.strptime(end_raw, '%Y-%m-%d').date() if end_raw else None
+    except ValueError:
+        raise ValueError('Program dates are invalid')
+    if not start_date:
+        raise ValueError('Program start date is required')
+    if end_date and end_date < start_date:
+        raise ValueError('Program end date cannot be before its start date')
+    if frequency_type == 'weekly':
+        frequency_days = request.form.get('frequency_days')
+    elif frequency_type == 'custom':
+        frequency_days = ','.join(request.form.getlist('custom_days'))
+        if not frequency_days:
+            raise ValueError('Choose at least one custom schedule day')
+    else:
+        frequency_days = None
+    return frequency_type, frequency_value, frequency_days, start_date, end_date
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -151,22 +232,17 @@ def health():
     """Health check endpoint for debugging"""
     try:
         # Test database connection
-        user_count = User.query.count()
-        program_count = Program.query.count()
+        db.session.execute(db.text('SELECT 1'))
         
         return {
             'status': 'healthy',
-            'database': 'connected',
-            'users': user_count,
-            'programs': program_count,
-            'environment': os.environ.get('FLASK_ENV', 'development')
+            'database': 'connected'
         }
     except Exception as e:
         app.logger.error(f"Health check error: {e}")
         return {
             'status': 'error',
-            'error': str(e),
-            'environment': os.environ.get('FLASK_ENV', 'development')
+            'database': 'unavailable'
         }, 500
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -186,8 +262,6 @@ def login():
             
             if user:
                 password_valid = check_password_hash(user.password_hash, password)
-                app.logger.info(f"User found: {user.username}, Password valid: {password_valid}")
-                
                 if password_valid:
                     login_user(user)
                     flash('Login successful!', 'success')
@@ -203,7 +277,7 @@ def login():
     
     return render_template('login.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
@@ -233,7 +307,16 @@ def dashboard():
         recent_evaluations = Evaluation.query.filter_by(
             instructor_id=current_user.id
         ).order_by(Evaluation.created_at.desc()).limit(5).all()
-        return render_template('dashboard_instructor.html', students=students, evaluations=recent_evaluations, teams=instructor_teams if instructor_teams else [])
+        today = date.today()
+        team_activity = {}
+        for team in instructor_teams:
+            team_activity[team.id] = {
+                'attendance_count': Attendance.query.filter_by(team_id=team.id, session_date=today).count(),
+                'latest_evaluation': Evaluation.query.join(User, Evaluation.student_id == User.id).filter(
+                    User.team_id == team.id
+                ).order_by(Evaluation.created_at.desc()).first()
+            }
+        return render_template('dashboard_instructor.html', students=students, evaluations=recent_evaluations, teams=instructor_teams or [], today=today, team_activity=team_activity)
     else:
         evaluations = Evaluation.query.filter_by(student_id=current_user.id).order_by(Evaluation.level).all()
         return render_template('dashboard_student.html', evaluations=evaluations)
@@ -246,10 +329,10 @@ def register():
         return redirect(url_for('dashboard'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        full_name = request.form.get('full_name')
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        full_name = request.form.get('full_name', '').strip()
         user_type = request.form.get('user_type')
         instructor_id = request.form.get('instructor_id')
         team_id = request.form.get('team_id')
@@ -259,9 +342,15 @@ def register():
         participates_hv_skier = request.form.get('participates_hv_skier') == 'on'
         participates_hv_snowboarder = request.form.get('participates_hv_snowboarder') == 'on'
         
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists', 'error')
-            return render_template('register.html', instructors=instructors, teams=teams, programs=programs)
+        if not all([username, email, password, full_name]) or user_type not in {'admin', 'instructor', 'student'}:
+            flash('Please complete all required account fields', 'error')
+            return redirect(url_for('register'))
+        if len(password) < 8:
+            flash('Password must be at least 8 characters', 'error')
+            return redirect(url_for('register'))
+        if User.query.filter((User.username == username) | (User.email == email)).first():
+            flash('Username or email already exists', 'error')
+            return redirect(url_for('register'))
         
         new_user = User(
             username=username,
@@ -274,7 +363,7 @@ def register():
             participates_snow_stars=participates_snow_stars if user_type == 'student' else False,
             participates_hv_skier=participates_hv_skier if user_type == 'student' else False,
             participates_hv_snowboarder=participates_hv_snowboarder if user_type == 'student' else False,
-            instructor_id=int(instructor_id) if instructor_id else None,
+            instructor_id=int(instructor_id) if instructor_id and user_type == 'student' else None,
             team_id=int(team_id) if team_id and user_type == 'student' else None
         )
         
@@ -283,6 +372,8 @@ def register():
         
         # Auto-update participation flags based on team program if team is assigned
         if user_type == 'student' and team_id:
+            team = Team.query.get_or_404(int(team_id))
+            new_user.instructor_id = team.instructor_id
             update_student_participation_from_team(new_user)
         
         db.session.commit()
@@ -316,7 +407,12 @@ def edit_user(user_id):
         
         # Update user fields
         user.username = new_username
-        user.email = request.form.get('email', '').strip()
+        new_email = request.form.get('email', '').strip().lower()
+        duplicate_email = User.query.filter(User.email == new_email, User.id != user.id).first()
+        if duplicate_email:
+            flash('Email already exists', 'error')
+            return redirect(url_for('edit_user', user_id=user.id))
+        user.email = new_email
         user.full_name = request.form.get('full_name', '').strip()
         user_type = request.form.get('user_type')
         user.user_type = user_type
@@ -331,8 +427,11 @@ def edit_user(user_id):
             instructor_id = request.form.get('instructor_id')
             team_id = request.form.get('team_id')
             
-            user.instructor_id = int(instructor_id) if instructor_id else None
             user.team_id = int(team_id) if team_id else None
+            if user.team_id:
+                user.instructor_id = Team.query.get_or_404(user.team_id).instructor_id
+            else:
+                user.instructor_id = int(instructor_id) if instructor_id else None
             
             # Update participation flags
             user.participates_skier = request.form.get('participates_skier') == 'on'
@@ -389,7 +488,7 @@ def evaluate_student(student_id):
     
     student = User.query.get_or_404(student_id)
     
-    if student.user_type != 'student' or student.instructor_id != current_user.id:
+    if not instructor_can_access_student(student):
         flash('You can only evaluate your assigned students', 'error')
         return redirect(url_for('dashboard'))
     
@@ -417,7 +516,15 @@ def evaluate_student(student_id):
             flash('Please select a sport for evaluation.', 'error')
             return redirect(url_for('dashboard'))
         
-        level = int(request.form.get('level'))
+        max_levels = {'skier': 8, 'snowboarder': 6, 'snow_stars': 6, 'hv_skier': 5, 'hv_snowboarder': 7}
+        try:
+            level = int(request.form.get('level', ''))
+        except (TypeError, ValueError):
+            flash('Please select a valid level', 'error')
+            return redirect(url_for('evaluate_student', student_id=student_id))
+        if sport_type not in max_levels or not 1 <= level <= max_levels[sport_type]:
+            flash('Selected level is not valid for this program', 'error')
+            return redirect(url_for('evaluate_student', student_id=student_id))
         
         # Check if student already has an evaluation for this level
         existing_evaluation = Evaluation.query.filter_by(
@@ -430,46 +537,50 @@ def evaluate_student(student_id):
             flash(f'Student already has an evaluation for level {level}. You can only create one evaluation per level per student.', 'error')
             return redirect(url_for('dashboard'))
         
-        evaluation = Evaluation(
-            student_id=student_id,
-            instructor_id=current_user.id,
-            sport_type=sport_type,
-            level=level,
-            skills_score=float(request.form.get('skills_score')),
-            attitude_score=float(request.form.get('attitude_score')),
-            performance_score=float(request.form.get('performance_score')),
-            comments=request.form.get('comments'),
-            created_at=datetime.now()
-        )
+        try:
+            evaluation = Evaluation(
+                student_id=student_id,
+                instructor_id=current_user.id,
+                sport_type=sport_type,
+                level=level,
+                skills_score=score_from_form('skills_score'),
+                attitude_score=score_from_form('attitude_score'),
+                performance_score=score_from_form('performance_score'),
+                comments=request.form.get('comments', '').strip(),
+                created_at=datetime.now()
+            )
         
         # Add sport-specific criteria
-        if sport_type == 'skier':
-            evaluation.technical_score = float(request.form.get('technical_score'))
-            evaluation.edging_score = float(request.form.get('edging_score'))
-            evaluation.pressure_control_score = float(request.form.get('pressure_control_score'))
-            evaluation.turn_shape_score = float(request.form.get('turn_shape_score'))
-        elif sport_type == 'snowboarder':
-            evaluation.board_control_score = float(request.form.get('board_control_score'))
-            evaluation.edge_awareness_score = float(request.form.get('edge_awareness_score'))
-            evaluation.body_positioning_score = float(request.form.get('body_positioning_score'))
-            evaluation.turn_control_score = float(request.form.get('turn_control_score'))
-        elif sport_type == 'snow_stars':
-            evaluation.movement_quality_score = float(request.form.get('movement_quality_score'))
-            evaluation.balance_score = float(request.form.get('balance_score'))
-            evaluation.control_score = float(request.form.get('control_score'))
-            evaluation.awareness_score = float(request.form.get('awareness_score'))
-        elif sport_type == 'hv_skier':
-            evaluation.hv_skills_balance_score = float(request.form.get('hv_skills_balance_score'))
-            evaluation.hv_edging_score = float(request.form.get('hv_edging_score'))
-            evaluation.hv_turn_shape_performance_score = float(request.form.get('hv_turn_shape_performance_score'))
-            evaluation.hv_pressure_control_score = float(request.form.get('hv_pressure_control_score'))
-            evaluation.hv_technical_score = float(request.form.get('hv_technical_score'))
-        elif sport_type == 'hv_snowboarder':
-            evaluation.hv_technical_skills_score = float(request.form.get('hv_technical_skills_score'))
-            evaluation.hv_freeride_skills_score = float(request.form.get('hv_freeride_skills_score'))
-            evaluation.hv_balance_score = float(request.form.get('hv_balance_score'))
-            evaluation.hv_steering_control_score = float(request.form.get('hv_steering_control_score'))
-            evaluation.hv_edge_control_score = float(request.form.get('hv_edge_control_score'))
+            if sport_type == 'skier':
+                evaluation.technical_score = score_from_form('technical_score')
+                evaluation.edging_score = score_from_form('edging_score')
+                evaluation.pressure_control_score = score_from_form('pressure_control_score')
+                evaluation.turn_shape_score = score_from_form('turn_shape_score')
+            elif sport_type == 'snowboarder':
+                evaluation.board_control_score = score_from_form('board_control_score')
+                evaluation.edge_awareness_score = score_from_form('edge_awareness_score')
+                evaluation.body_positioning_score = score_from_form('body_positioning_score')
+                evaluation.turn_control_score = score_from_form('turn_control_score')
+            elif sport_type == 'snow_stars':
+                evaluation.movement_quality_score = score_from_form('movement_quality_score')
+                evaluation.balance_score = score_from_form('balance_score')
+                evaluation.control_score = score_from_form('control_score')
+                evaluation.awareness_score = score_from_form('awareness_score')
+            elif sport_type == 'hv_skier':
+                evaluation.hv_skills_balance_score = score_from_form('hv_skills_balance_score')
+                evaluation.hv_edging_score = score_from_form('hv_edging_score')
+                evaluation.hv_turn_shape_performance_score = score_from_form('hv_turn_shape_performance_score')
+                evaluation.hv_pressure_control_score = score_from_form('hv_pressure_control_score')
+                evaluation.hv_technical_score = score_from_form('hv_technical_score')
+            elif sport_type == 'hv_snowboarder':
+                evaluation.hv_technical_skills_score = score_from_form('hv_technical_skills_score')
+                evaluation.hv_freeride_skills_score = score_from_form('hv_freeride_skills_score')
+                evaluation.hv_balance_score = score_from_form('hv_balance_score')
+                evaluation.hv_steering_control_score = score_from_form('hv_steering_control_score')
+                evaluation.hv_edge_control_score = score_from_form('hv_edge_control_score')
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return redirect(url_for('evaluate_student', student_id=student_id))
         
         db.session.add(evaluation)
         db.session.commit()
@@ -525,7 +636,7 @@ def view_evaluation(evaluation_id):
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
     
-    if current_user.user_type == 'instructor' and evaluation.instructor_id != current_user.id:
+    if current_user.user_type == 'instructor' and evaluation.instructor_id != current_user.id and not instructor_can_access_student(evaluation.student):
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
     
@@ -582,15 +693,11 @@ def create_program():
     
     name = request.form.get('name')
     description = request.form.get('description')
-    frequency_type = request.form.get('frequency_type', 'consecutive')
-    frequency_value = int(request.form.get('frequency_value', 8))
-    frequency_days = request.form.get('frequency_days', None)
-    start_date = request.form.get('start_date')
-    end_date = request.form.get('end_date', None)
-    
-    # Convert date strings to date objects
-    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date() if start_date else None
-    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date() if end_date else None
+    try:
+        frequency_type, frequency_value, frequency_days, start_date_obj, end_date_obj = program_schedule_from_form()
+    except ValueError as exc:
+        flash(str(exc), 'error')
+        return redirect(url_for('manage_programs'))
     
     program = Program(
         name=name, 
@@ -617,18 +724,12 @@ def update_program(program_id):
     
     program.name = request.form.get('name')
     program.description = request.form.get('description')
-    program.frequency_type = request.form.get('frequency_type', 'consecutive')
-    program.frequency_value = int(request.form.get('frequency_value', 8))
-    program.frequency_days = request.form.get('frequency_days', None)
-    
-    # Handle date updates
-    start_date = request.form.get('start_date')
-    end_date = request.form.get('end_date', None)
-    
-    if start_date:
-        program.start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-    if end_date:
-        program.end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    if 'start_date' in request.form:
+        try:
+            program.frequency_type, program.frequency_value, program.frequency_days, program.start_date, program.end_date = program_schedule_from_form()
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return redirect(url_for('manage_programs'))
     
     db.session.commit()
     flash('Program updated successfully', 'success')
@@ -668,8 +769,10 @@ def update_team(team_id):
     team.team_type = request.form.get('team_type')
     
     # If program changed, update participation flags for all students in this team
-    if old_program_id != team.program_id:
-        for student in team.students:
+    for student in team.students:
+        # Keep legacy instructor assignment synchronized with team ownership.
+        student.instructor_id = team.instructor_id
+        if old_program_id != team.program_id:
             update_student_participation_from_team(student)
     
     db.session.commit()
@@ -696,6 +799,38 @@ def delete_team(team_id):
     return redirect(url_for('manage_teams'))
 
 # Note: Database initialization is handled in api/index.py for Vercel
+
+@app.route('/teams/<int:team_id>/session')
+@login_required
+def team_session(team_id):
+    """Team-first workspace for a day's attendance and coaching actions."""
+    team = Team.query.get_or_404(team_id)
+    if not (is_admin() or instructor_owns_team(team)):
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+
+    requested_date = request.args.get('date')
+    try:
+        session_date = datetime.strptime(requested_date, '%Y-%m-%d').date() if requested_date else date.today()
+    except ValueError:
+        flash('Invalid session date', 'error')
+        return redirect(url_for('team_session', team_id=team_id))
+
+    students = User.query.filter_by(team_id=team_id, user_type='student').order_by(User.full_name).all()
+    attendance = {
+        record.student_id: record
+        for record in Attendance.query.filter_by(team_id=team_id, session_date=session_date).all()
+    }
+    latest_evaluations = {}
+    completed_levels = {}
+    for student in students:
+        latest_evaluations[student.id] = Evaluation.query.filter_by(student_id=student.id).order_by(Evaluation.created_at.desc()).first()
+        completed_levels[student.id] = Evaluation.query.filter_by(student_id=student.id).count()
+
+    return render_template(
+        'team_session.html', team=team, students=students, session_date=session_date,
+        attendance=attendance, latest_evaluations=latest_evaluations, completed_levels=completed_levels
+    )
 
 @app.route('/attendance/<int:team_id>')
 @login_required
@@ -735,7 +870,17 @@ def record_attendance(team_id):
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
     
-    session_date = datetime.strptime(request.form.get('session_date'), '%Y-%m-%d').date()
+    try:
+        session_date = datetime.strptime(request.form.get('session_date', ''), '%Y-%m-%d').date()
+    except ValueError:
+        flash('Please choose a valid session date', 'error')
+        return redirect(url_for('team_session', team_id=team_id))
+    if team.program.start_date and session_date < team.program.start_date:
+        flash('Session date is before the program begins', 'error')
+        return redirect(url_for('team_session', team_id=team_id, date=session_date.isoformat()))
+    if team.program.end_date and session_date > team.program.end_date:
+        flash('Session date is after the program ends', 'error')
+        return redirect(url_for('team_session', team_id=team_id, date=session_date.isoformat()))
     
     # Record attendance for each student
     for student in team.students:
@@ -766,6 +911,8 @@ def record_attendance(team_id):
     
     db.session.commit()
     flash('Attendance recorded successfully', 'success')
+    if request.form.get('return_to') == 'session':
+        return redirect(url_for('team_session', team_id=team_id, date=session_date.isoformat()))
     return redirect(url_for('manage_attendance', team_id=team_id))
 
 if __name__ == '__main__':

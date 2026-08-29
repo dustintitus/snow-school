@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }} Session | Snow School{% endblock %}
+{% block content %}
+<div class="session-heading">
+    <div>
+        <p class="eyebrow">Team workspace · {{ team.program.name }}</p>
+        <h2>{{ team.name }}</h2>
+        <p class="session-meta">{{ session_date.strftime('%A, %B %d, %Y') }} · {{ students|length }} athletes · {{ team.instructor.full_name }}</p>
+    </div>
+    <form method="GET" class="session-date-picker">
+        <label for="date">Session date</label>
+        <div><input type="date" id="date" name="date" value="{{ session_date.isoformat() }}"><button class="btn btn-secondary" type="submit">Open date</button></div>
+    </form>
+</div>
+
+<div class="session-summary">
+    <div><strong>{{ attendance|length }}/{{ students|length }}</strong><span>Attendance recorded</span></div>
+    <div><strong>{{ completed_levels.values()|sum }}</strong><span>Total evaluations</span></div>
+    <div><strong>{{ team.program.frequency_value }}</strong><span>Planned sessions</span></div>
+</div>
+
+<form method="POST" action="{{ url_for('record_attendance', team_id=team.id) }}" class="session-roster-form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="session_date" value="{{ session_date.isoformat() }}">
+    <input type="hidden" name="return_to" value="session">
+    <div class="session-toolbar">
+        <div><p class="eyebrow">Today’s roster</p><h3>Attendance & coaching</h3></div>
+        <button type="submit" class="btn btn-primary">Save attendance <span>↗</span></button>
+    </div>
+    {% if students %}
+    <div class="session-roster">
+        {% for student in students %}
+        {% set record = attendance.get(student.id) %}
+        {% set latest = latest_evaluations.get(student.id) %}
+        <article class="athlete-row">
+            <div class="athlete-identity"><span class="athlete-initials">{{ student.full_name.split()|map('first')|join('')|upper }}</span><div><strong>{{ student.full_name }}</strong><small>{{ completed_levels[student.id] }} evaluations{% if latest %} · Last {{ latest.created_at.strftime('%b %d') }}{% endif %}</small></div></div>
+            <label class="attendance-toggle"><input type="checkbox" name="attended_{{ student.id }}" {% if record is none or record.attended %}checked{% endif %}><span>Present</span></label>
+            <input type="text" name="notes_{{ student.id }}" value="{{ record.notes if record else '' }}" placeholder="Session note" aria-label="Session note for {{ student.full_name }}">
+            <a href="{{ url_for('evaluate_student', student_id=student.id) }}" class="btn btn-secondary">Evaluate</a>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}<div class="no-records">No athletes are assigned to this team yet.</div>{% endif %}
+</form>
+
+<div class="session-footer-actions"><a href="{{ url_for('dashboard') }}" class="inline-link">← Back to dashboard</a><a href="{{ url_for('manage_attendance', team_id=team.id) }}" class="inline-link">Full attendance history →</a></div>
+{% endblock %}

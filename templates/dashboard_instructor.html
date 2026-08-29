@@ -8,15 +8,15 @@
 </div>
 
 {% if teams %}
-<div class="card">
-    <h3>My Classes & Teams</h3>
+<div class="instructor-team-grid">
     {% for team in teams %}
-    <div style="padding: 1rem; margin-bottom: 0.5rem; background: var(--bg-light); border-radius: 0.5rem;">
-        <strong>{{ team.name }}</strong> 
-        <span class="badge badge-{{ team.team_type }}">{{ team.team_type }}</span>
-        - {{ team.program.name }}
-        <br><span style="color: var(--text-secondary); font-size: 0.9rem;">{{ team.students|length }} students</span>
-    </div>
+    {% set activity = team_activity[team.id] %}
+    <article class="instructor-team-card">
+        <div class="team-card-top"><span class="badge badge-{{ team.team_type }}">{{ team.team_type }}</span><span>{{ today.strftime('%a · %b %d') }}</span></div>
+        <h3>{{ team.name }}</h3><p>{{ team.program.name }}</p>
+        <div class="team-card-metrics"><div><strong>{{ team.students|length }}</strong><span>Athletes</span></div><div><strong>{{ activity.attendance_count }}/{{ team.students|length }}</strong><span>Attendance</span></div></div>
+        <a href="{{ url_for('team_session', team_id=team.id) }}" class="btn btn-primary">Start today’s session <span>↗</span></a>
+    </article>
     {% endfor %}
 </div>
 {% endif %}
@@ -48,8 +48,8 @@
         </thead>
         <tbody>
             {% for student in students %}
-            {% set evaluations = student.evaluations_received|selectattr('sport_type', 'equalto', student.sport_type)|list %}
-            {% set highest_level = evaluations|map(attribute='level')|list|max if evaluations else 0 %}
+            {% set student_evaluations = student.evaluations_received|sort(attribute='created_at', reverse=true) %}
+            {% set latest_evaluation = student_evaluations|first if student_evaluations else none %}
             <tr>
                 <td>{{ student.full_name }}</td>
                 <td>{{ student.email }}</td>
@@ -77,10 +77,9 @@
                     {% endif %}
                 </td>
                 <td>
-                    {% if highest_level > 0 %}
-                        {% if student.participates_skier %}{{ 'Skiing' }} - STEP {{ highest_level }}{% endif %}
-                        {% if student.participates_snowboarder %}{% if student.participates_skier %}, {% endif %}Snowboarding - RIP {{ highest_level }}{% endif %}
-                        {% if student.participates_snow_stars %}{% if student.participates_skier or student.participates_snowboarder %}, {% endif %}Racing - Snow Stars {{ highest_level }}{% endif %}
+                    {% if latest_evaluation %}
+                        {% if latest_evaluation.sport_type == 'skier' %}STEP{% elif latest_evaluation.sport_type == 'snowboarder' %}RIP{% elif latest_evaluation.sport_type == 'snow_stars' %}Snow Stars{% else %}HV{% endif %} {{ latest_evaluation.level }}
+                        <small class="student-username">· {{ student_evaluations|length }} total</small>
                     {% else %}
                         <span style="color: var(--text-secondary);">Not started</span>
                     {% endif %}
@@ -152,4 +151,3 @@
 </div>
 {% endif %}
 {% endblock %}
-

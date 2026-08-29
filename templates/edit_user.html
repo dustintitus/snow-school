@@ -7,6 +7,7 @@
     <div class="auth-card">
         <h2>Edit User: {{ user.full_name }}</h2>
         <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" value="{{ user.username }}" required>
@@ -128,4 +129,3 @@ function updateInstructorFromTeam() {
 }
 </script>
 {% endblock %}
-

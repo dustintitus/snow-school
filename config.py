@@ -19,8 +19,8 @@ class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
     
-    # Use in-memory SQLite for Vercel deployment (serverless-friendly)
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///:memory:'
+    # Production must use durable storage; validated during app startup.
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     
     # Security settings
     SESSION_COOKIE_SECURE = True  # Only send cookies over HTTPS
@@ -33,4 +33,3 @@ config = {
     'production': ProductionConfig,
     'default': DevelopmentConfig
 }
-
