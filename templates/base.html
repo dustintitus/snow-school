@@ -9,8 +9,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/horseshoe-logo.png') }}">
-    <title>{% block title %}Snow School | Horseshoe Valley Resort{% endblock %}</title>
+    {% if current_user.is_authenticated %}<link rel="apple-touch-icon" href="{{ url_for('static', filename='img/horseshoe-logo.png') }}">{% endif %}
+    <title>{% block title %}Snow School | Progress lives here{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
@@ -19,13 +19,12 @@
 <body class="{% block body_class %}{% endblock %}">
     <header class="site-header">
         <div class="utility-bar">
-            <div class="shell utility-inner"><span>Horseshoe Valley, Ontario</span><span class="utility-season">Winter programs · Progress made visible</span></div>
+            <div class="shell utility-inner">{% if current_user.is_authenticated %}<span>Horseshoe Valley, Ontario</span><span class="utility-season">Winter programs · Progress made visible</span>{% else %}<span>Built for snow schools everywhere</span><span class="utility-season">Ski · Ride · Coach · Progress</span>{% endif %}</div>
         </div>
         <nav class="navbar" aria-label="Primary navigation">
             <div class="shell nav-inner">
                 <a class="brand" href="{{ url_for('index') }}" aria-label="Snow School home">
-                    <img src="{{ url_for('static', filename='img/horseshoe-logo.png') }}" alt="Horseshoe Valley Resort" class="logo-img">
-                    <span class="brand-divider"></span><span class="brand-name">Snow<br>School</span>
+                    {% if current_user.is_authenticated %}<img src="{{ url_for('static', filename='img/horseshoe-logo.png') }}" alt="Horseshoe Valley Resort" class="logo-img"><span class="brand-divider"></span><span class="brand-name">Snow<br>School</span>{% else %}<span class="public-brand-mark" aria-hidden="true">S<span>///</span></span><span class="public-brand-name">SNOW<br>SCHOOL</span>{% endif %}
                 </a>
                 <div class="nav-actions">
                     {% if current_user.is_authenticated %}
@@ -47,7 +46,7 @@
         {% endwith %}
         {% block content %}{% endblock %}
     </main>
-    <footer class="site-footer"><div class="shell footer-inner"><div><strong>Snow School</strong><span>Horseshoe Valley Resort</span></div><p>Learn with confidence. Track every breakthrough.</p></div></footer>
+    <footer class="site-footer"><div class="shell footer-inner"><div><strong>Snow School</strong><span>{% if current_user.is_authenticated %}Horseshoe Valley Resort{% else %}Progress lives here{% endif %}</span></div><p>Learn with confidence. Track every breakthrough.</p></div></footer>
     <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </body>
 </html>
