@@ -107,6 +107,14 @@ class WorkflowTestCase(unittest.TestCase):
         self.assertNotIn(b'users', response.data)
         self.assertNotIn(b'programs', response.data)
 
+    def test_site_is_blocked_from_search_indexing(self):
+        response = self.client.get('/')
+        self.assertEqual(response.headers['X-Robots-Tag'], 'noindex, nofollow, noarchive, nosnippet')
+        self.assertIn(b'<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">', response.data)
+        robots = self.client.get('/robots.txt')
+        self.assertEqual(robots.mimetype, 'text/plain')
+        self.assertEqual(robots.data, b'User-agent: *\nDisallow: /\n')
+
     def test_mobile_login_redirects_coach_to_requested_local_path(self):
         response = self.client.post('/login', data={
             'username': 'coach',

@@ -47,6 +47,12 @@ def protect_state_changes():
         if not submitted or not expected or not secrets.compare_digest(submitted, expected):
             abort(400, description='Invalid or missing security token')
 
+@app.after_request
+def prevent_search_indexing(response):
+    """Keep the private preview out of search indexes until launch."""
+    response.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive, nosnippet'
+    return response
+
 def is_admin():
     return current_user.is_authenticated and current_user.user_type == 'admin'
 
@@ -270,6 +276,10 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
+
+@app.route('/robots.txt')
+def robots_txt():
+    return 'User-agent: *\nDisallow: /\n', 200, {'Content-Type': 'text/plain; charset=utf-8'}
 
 @app.route('/health')
 def health():
