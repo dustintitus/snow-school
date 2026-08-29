@@ -58,6 +58,34 @@ class Enrollment(db.Model):
     student = db.relationship('User', backref='enrollments')
     team = db.relationship('Team', backref='enrollments')
 
+class CurriculumLevel(db.Model):
+    """A resort curriculum level and its progression outcome."""
+    __table_args__ = (db.UniqueConstraint('discipline', 'level_number', name='uq_curriculum_discipline_level'),)
+    id = db.Column(db.Integer, primary_key=True)
+    discipline = db.Column(db.String(20), nullable=False)  # step or rip
+    level_number = db.Column(db.Integer, nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    terrain = db.Column(db.String(120), nullable=True)
+    readiness_outcome = db.Column(db.Text, nullable=False)
+    framework = db.Column(db.String(120), nullable=False)
+    source_url = db.Column(db.String(500), nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    skills = db.relationship('CurriculumSkill', backref='curriculum_level', cascade='all, delete-orphan', order_by='CurriculumSkill.sort_order')
+
+class CurriculumSkill(db.Model):
+    """An observable skill outcome attached to one curriculum level."""
+    __table_args__ = (db.UniqueConstraint('curriculum_level_id', 'code', name='uq_curriculum_level_skill_code'),)
+    id = db.Column(db.Integer, primary_key=True)
+    curriculum_level_id = db.Column(db.Integer, db.ForeignKey('curriculum_level.id'), nullable=False)
+    code = db.Column(db.String(60), nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    skill_family = db.Column(db.String(40), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    assessment_prompt = db.Column(db.Text, nullable=False)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+    is_required = db.Column(db.Boolean, nullable=False, default=True)
+
 class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)

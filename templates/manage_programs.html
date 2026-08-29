@@ -3,7 +3,7 @@
 {% block content %}
 <div class="dashboard-header admin-dashboard-header">
     <div><p class="eyebrow">Horseshoe catalogue · {{ current_season }}</p><h2>Manage programs</h2><p class="dashboard-lede">Program setup, pricing, capacity, and season delivery in one place.</p></div>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Dashboard</a>
+    <div class="dashboard-actions"><a href="{{ url_for('manage_curriculum') }}" class="btn btn-primary">STEP / RIP Skills</a><a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Dashboard</a></div>
 </div>
 
 <div class="catalog-summary">

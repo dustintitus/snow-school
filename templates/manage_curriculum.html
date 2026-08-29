@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}STEP / RIP Curriculum{% endblock %}
+{% macro curriculum_column(title, subtitle, levels, css_class) %}
+<section class="curriculum-column {{ css_class }}">
+    <div class="curriculum-column-heading"><p class="eyebrow">{{ subtitle }}</p><h3>{{ title }}</h3><span>{{ levels|length }} levels · {{ levels|map(attribute='skills')|map('length')|sum }} skills</span></div>
+    {% for level in levels %}<details class="curriculum-level" {{ 'open' if loop.first }}>
+        <summary><span class="level-number">{{ level.level_number }}</span><div><strong>{{ level.name }}</strong><small>{{ level.terrain }}</small></div><span class="level-skill-count">{{ level.skills|length }} skills</span></summary>
+        <div class="curriculum-level-body"><p>{{ level.description }}</p><div class="readiness-outcome"><span>Ready to progress when</span><strong>{{ level.readiness_outcome }}</strong></div>
+            <div class="curriculum-skills">{% for skill in level.skills %}<article><span>{{ skill.skill_family }}</span><h4>{{ skill.name }}</h4><p>{{ skill.description }}</p><small>{{ skill.assessment_prompt }}</small></article>{% endfor %}</div>
+            <div class="curriculum-source">{{ level.framework }} · <a href="{{ level.source_url }}" target="_blank" rel="noopener">Framework source ↗</a></div>
+        </div>
+    </details>{% endfor %}
+</section>
+{% endmacro %}
+{% block content %}
+<div class="dashboard-header admin-dashboard-header"><div><p class="eyebrow">Curriculum foundation</p><h2>STEP & RIP skills by level</h2><p class="dashboard-lede">Observable outcomes that can now power lesson plans, session coaching and evidence-based evaluations.</p></div><a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Dashboard</a></div>
+<div class="curriculum-disclaimer"><strong>Working Snow School curriculum</strong><p>These level progressions are informed by the public CSIA 5 Skills and CASI QuickRide frameworks. They are configurable resort curriculum—not an official CSIA or CASI certification standard.</p></div>
+<div class="curriculum-grid">{{ curriculum_column('STEP', 'Ski development', step_levels, 'curriculum-step') }}{{ curriculum_column('RIP', 'Snowboard development', rip_levels, 'curriculum-rip') }}</div>
+{% endblock %}

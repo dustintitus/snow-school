@@ -3,7 +3,7 @@
 {% block content %}
 <div class="dashboard-header admin-dashboard-header">
     <div><p class="eyebrow">{{ dashboard_data.season }} season</p><h2>Snow School overview</h2><p class="dashboard-lede">A quick read on demand, returning guests, program delivery, and data that needs attention.</p></div>
-    <div class="dashboard-actions"><a href="{{ url_for('manage_programs') }}" class="btn btn-primary">Manage Programs</a><a href="{{ url_for('manage_teams') }}" class="btn btn-secondary">Classes & Teams</a><a href="{{ url_for('register') }}" class="btn btn-secondary">Add User</a></div>
+    <div class="dashboard-actions"><a href="{{ url_for('manage_programs') }}" class="btn btn-primary">Manage Programs</a><a href="{{ url_for('manage_curriculum') }}" class="btn btn-secondary">STEP / RIP Skills</a><a href="{{ url_for('manage_teams') }}" class="btn btn-secondary">Classes & Teams</a><a href="{{ url_for('register') }}" class="btn btn-secondary">Add User</a></div>
 </div>
 
 <div class="admin-kpi-grid">

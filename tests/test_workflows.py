@@ -6,8 +6,8 @@ os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SECRET_KEY'] = 'test-secret-key'
 os.environ['FLASK_ENV'] = 'production'
 
-from app import app, build_admin_dashboard, seed_demo_accounts, seed_demo_operations, seed_horseshoe_catalogue
-from models import db, AppSetting, Attendance, ClassSession, Enrollment, Program, ProgramProfile, Team, User
+from app import app, build_admin_dashboard, seed_demo_accounts, seed_demo_operations, seed_horseshoe_catalogue, seed_step_rip_curriculum
+from models import db, AppSetting, Attendance, ClassSession, CurriculumLevel, CurriculumSkill, Enrollment, Program, ProgramProfile, Team, User
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -195,6 +195,33 @@ class WorkflowTestCase(unittest.TestCase):
             self.assertGreater(dashboard['waitlisted'], 0)
             self.assertEqual(dashboard['history_seasons'], 3)
             self.assertEqual(dashboard['capacity_missing'], 0)
+
+    def test_step_rip_curriculum_has_skills_for_every_level(self):
+        with app.app_context():
+            self.assertTrue(seed_step_rip_curriculum('test-curriculum'))
+            self.assertFalse(seed_step_rip_curriculum('test-curriculum'))
+            self.assertEqual(CurriculumLevel.query.filter_by(discipline='step').count(), 8)
+            self.assertEqual(CurriculumLevel.query.filter_by(discipline='rip').count(), 6)
+            self.assertEqual(CurriculumSkill.query.count(), 56)
+            self.assertTrue(all(len(level.skills) == 4 for level in CurriculumLevel.query.all()))
+
+    def test_curriculum_renders_for_admin_and_coach_evaluation(self):
+        with app.app_context():
+            seed_step_rip_curriculum('render-curriculum')
+            admin = User(username='curriculum-admin', email='curriculum@example.com', password_hash=generate_password_hash('password123'), full_name='Curriculum Admin', user_type='admin')
+            db.session.add(admin)
+            db.session.commit()
+            admin_id = admin.id
+        self.login_as(admin_id)
+        curriculum = self.client.get('/admin/curriculum')
+        self.assertEqual(curriculum.status_code, 200)
+        self.assertIn(b'First Steps', curriculum.data)
+        self.assertIn(b'All-Mountain Rider', curriculum.data)
+        self.login_as(self.instructor_id)
+        evaluation = self.client.get(f'/evaluate/{self.student_id}')
+        self.assertEqual(evaluation.status_code, 200)
+        self.assertIn(b'Balanced glide', evaluation.data)
+        self.assertIn(b'CASI QuickRide-informed', curriculum.data)
 
 
 class CsrfTestCase(unittest.TestCase):

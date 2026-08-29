@@ -3,7 +3,7 @@ import secrets
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, AppSetting, User, Evaluation, Program, ProgramProfile, Enrollment, Team, Attendance, ClassSession
+from models import db, AppSetting, User, Evaluation, Program, ProgramProfile, Enrollment, CurriculumLevel, CurriculumSkill, Team, Attendance, ClassSession
 from datetime import datetime, date, timedelta
 from config import config
 import logging
@@ -264,6 +264,119 @@ def seed_horseshoe_catalogue(seed_version='2026-2027-v1'):
     db.session.commit()
     return True
 
+def seed_step_rip_curriculum(seed_version='step-rip-working-v1'):
+    """Load the editable STEP/RIP working curriculum from public CSIA/CASI frameworks."""
+    setting_key = f'curriculum:{seed_version}'
+    if db.session.get(AppSetting, setting_key):
+        return False
+
+    csia_url = 'https://csia.snowpro.com/ServicesServlet/telechargement/document/The5SkillsFramework.pdf'
+    casi_url = 'https://casi-acms.com/quickride/'
+    levels = (
+        ('step', 1, 'First Steps', 'Build comfort with equipment, movement and controlled gliding.', 'Learning area / flat terrain', 'Moves independently, glides in balance and stops on command.', 'CSIA 5 Skills-informed', csia_url, (
+            ('mobility', 'Equipment & mobility', 'Balance', 'Moves safely in boots and skis, including stepping, turning and getting up.', 'Can the skier move independently and recover safely?'),
+            ('glide', 'Balanced glide', 'Balance', 'Maintains a centred, stable stance while gliding straight.', 'Is the skier centred and relaxed while the skis move?'),
+            ('wedge-stop', 'Wedge stop', 'Rotary', 'Creates and releases a wedge to manage speed and stop.', 'Can the skier stop predictably at a chosen point?'),
+            ('safety-1', 'Learning-area safety', 'Coordination', 'Follows spacing, stopping-zone and equipment instructions.', 'Does the skier demonstrate safe awareness without repeated prompting?'))),
+        ('step', 2, 'Direction & Speed', 'Introduce linked direction changes with deliberate speed control.', 'Beginner terrain / magic carpet', 'Links controlled wedge turns and independently uses beginner-area transport.', 'CSIA 5 Skills-informed', csia_url, (
+            ('wedge-turns', 'Linked wedge turns', 'Rotary', 'Turns both directions using progressive leg steering.', 'Are turns linked in both directions without upper-body rotation?'),
+            ('speed-shape', 'Speed through turn shape', 'Coordination', 'Uses rounded turns rather than braking alone to manage speed.', 'Does the skier choose a turn shape that controls speed?'),
+            ('edge-release', 'Edge release', 'Edging', 'Releases the old edges to begin each new turn.', 'Is direction change initiated by a smooth release?'),
+            ('lift-1', 'Beginner lift independence', 'Balance', 'Loads, rides and unloads the beginner lift safely.', 'Can the skier complete the lift sequence with minimal support?'))),
+        ('step', 3, 'Confident Explorer', 'Develop rhythm, directional control and early matching on green terrain.', 'Green runs', 'Skis linked turns with rhythm and matches skis through part of the turn.', 'CSIA 5 Skills-informed', csia_url, (
+            ('rhythm', 'Linked-turn rhythm', 'Coordination', 'Maintains a consistent rhythm over a sequence of turns.', 'Are timing and speed consistent for at least six turns?'),
+            ('matching', 'Progressive ski matching', 'Rotary', 'Brings skis toward parallel as the turn develops.', 'Do the skis match without a forced step?'),
+            ('fore-aft', 'Fore-aft balance', 'Balance', 'Stays centred as pitch and speed change.', 'Can the skier remain mobile rather than sitting back?'),
+            ('trail-choice', 'Green-run independence', 'Coordination', 'Selects safe line, spacing and stopping locations.', 'Does the skier make safe route decisions independently?'))),
+        ('step', 4, 'Parallel Foundations', 'Establish linked parallel skiing and controlled edge engagement.', 'Green and easy blue runs', 'Links parallel turns with consistent speed on easy blue terrain.', 'CSIA 5 Skills-informed', csia_url, (
+            ('parallel', 'Linked parallel turns', 'Rotary', 'Keeps skis parallel through the majority of each turn.', 'Are both skis guided together through linked turns?'),
+            ('edge-grip', 'Progressive edge grip', 'Edging', 'Builds edge angle smoothly through the shaping phase.', 'Does grip increase progressively without abrupt banking?'),
+            ('pressure-outside', 'Outside-ski pressure', 'Pressure', 'Balances predominantly over the outside ski through the turn.', 'Is pressure directed to the outside ski while remaining mobile?'),
+            ('pole-touch', 'Pole-touch introduction', 'Coordination', 'Uses a light pole touch to support timing.', 'Does the pole touch help rhythm without disrupting balance?'))),
+        ('step', 5, 'Versatile Parallel', 'Vary turn shape and radius while maintaining centred parallel skiing.', 'Blue runs / varied groomed terrain', 'Adapts linked parallel turns to changes in speed, radius and pitch.', 'CSIA 5 Skills-informed', csia_url, (
+            ('radius', 'Variable turn radius', 'Rotary', 'Creates short, medium and long turns on command.', 'Can the skier change radius while retaining control?'),
+            ('pressure-cycle', 'Pressure through the turn', 'Pressure', 'Builds and releases pressure smoothly from turn to turn.', 'Is pressure managed continuously rather than abruptly?'),
+            ('edge-transition', 'Balanced edge transition', 'Edging', 'Moves smoothly from one set of edges to the other.', 'Does the skier cross the skis without a pause or stem?'),
+            ('terrain-adapt', 'Terrain adaptation', 'Coordination', 'Adjusts stance and line for rolls and changing snow.', 'Are movements adapted to terrain while speed remains controlled?'))),
+        ('step', 6, 'Dynamic Blue', 'Develop stronger performance, shorter turns and entry-level carving.', 'Blue runs / introductory bumps', 'Maintains dynamic parallel skiing across groomed and lightly variable terrain.', 'CSIA 5 Skills-informed', csia_url, (
+            ('carve-intro', 'Clean arc introduction', 'Edging', 'Creates portions of a turn with minimal lateral slipping.', 'Are clean tracks visible through the shaping phase?'),
+            ('short-turn', 'Short-radius turns', 'Coordination', 'Links controlled short turns in a consistent corridor.', 'Can the skier maintain rhythm and corridor width?'),
+            ('flex-extend', 'Dynamic flexion & extension', 'Pressure', 'Uses leg movement to manage forces and terrain.', 'Do the legs remain active while the upper body stays stable?'),
+            ('bumps-intro', 'Variable-terrain mobility', 'Balance', 'Absorbs small terrain changes without losing stance.', 'Can the skier remain centred through gentle bumps or rolls?'))),
+        ('step', 7, 'Advanced All-Mountain', 'Refine carving, short turns and tactics for ungroomed terrain.', 'Advanced blue and black terrain', 'Chooses and executes effective tactics on advanced groomed and ungroomed runs.', 'CSIA 5 Skills-informed', csia_url, (
+            ('carving', 'Carved turns', 'Edging', 'Maintains clean arcs through complete medium-radius turns.', 'Are edge angle and pressure sufficient to leave clean tracks?'),
+            ('advanced-short', 'Advanced short turns', 'Rotary', 'Controls speed with leg steering in a narrow corridor.', 'Are turns directed by the legs with a stable upper body?'),
+            ('ungroomed', 'Ungroomed tactics', 'Balance', 'Adapts line, absorption and pressure to inconsistent snow.', 'Does the skier remain mobile and purposeful off groomed snow?'),
+            ('decision-7', 'Tactical decision-making', 'Coordination', 'Selects turn type and line for terrain and conditions.', 'Can the skier explain and execute an appropriate tactic?'))),
+        ('step', 8, 'Expert Adaptability', 'Demonstrate versatile, efficient skiing across the mountain.', 'Black terrain / varied conditions', 'Consistently adapts expert movement patterns, line and intensity to the situation.', 'CSIA 5 Skills-informed', csia_url, (
+            ('expert-versatility', 'Turn-shape versatility', 'Coordination', 'Moves fluently among carved, steered, short and open turns.', 'Can the skier change performance without losing control?'),
+            ('expert-pressure', 'High-performance pressure', 'Pressure', 'Manages larger forces while remaining balanced and mobile.', 'Is pressure directed and released effectively at higher intensity?'),
+            ('expert-terrain', 'Advanced terrain adaptation', 'Balance', 'Maintains effective stance and line in demanding conditions.', 'Does performance remain composed as terrain and snow vary?'),
+            ('self-analysis', 'Independent performance analysis', 'Coordination', 'Identifies an outcome, tests a tactic and adjusts performance.', 'Can the skier accurately assess and improve their own run?'))),
+        ('rip', 1, 'Basics', 'Become comfortable with equipment and one-foot mobility.', 'Flat learning area', 'Handles equipment, moves with one foot attached and demonstrates a neutral position.', 'CASI QuickRide-informed', casi_url, (
+            ('equipment', 'Equipment setup', 'Equipment', 'Identifies equipment parts and attaches the front foot correctly.', 'Can the rider prepare equipment and secure the front foot?'),
+            ('neutral', 'Neutral position', 'Position & Balance', 'Maintains a relaxed, centred stance over the board.', 'Is the rider centred, mobile and looking where they travel?'),
+            ('skating', 'Skating', 'Mobility', 'Pushes, glides and changes direction with one foot free.', 'Can the rider skate and glide safely in both directions?'),
+            ('climb', 'Climbing & descending', 'Mobility', 'Moves up and down a gentle slope with the board controlled.', 'Can the rider manage the board without creating a hazard?'))),
+        ('rip', 2, 'Sliding', 'Develop balance and comfort while the board glides.', 'Gentle beginner slope', 'Straight-runs in balance and finishes with controlled J-turns.', 'CASI QuickRide-informed', casi_url, (
+            ('straight-run', 'Straight running', 'Position & Balance', 'Glides with a stable, relaxed position over both feet.', 'Does the rider remain centred through the full glide?'),
+            ('one-foot-control', 'One-foot board control', 'Pressure', 'Uses the free foot and board angle to manage the finish.', 'Can the rider slow and stop after a one-foot glide?'),
+            ('j-turn', 'J-turns', 'Pivoting', 'Changes direction to finish across the slope on both edges.', 'Can the rider complete heel- and toe-side J-turns?'),
+            ('falling', 'Safe falling & recovery', 'Safety', 'Falls, gets up and clears the run safely.', 'Does the rider use safe recovery habits independently?'))),
+        ('rip', 3, 'Control', 'Control speed and direction on both edges with both feet attached.', 'Beginner slope', 'Sideslips and pendulums on heel and toe edges with controlled direction.', 'CASI QuickRide-informed', casi_url, (
+            ('sideslip', 'Sideslipping', 'Edging', 'Regulates edge angle to descend straight on both edges.', 'Can the rider start, regulate and stop a sideslip?'),
+            ('pendulum', 'Pendulum', 'Pressure', 'Moves laterally in both directions while maintaining edge control.', 'Can the rider traverse both ways without losing the edge?'),
+            ('edge-awareness', 'Edge awareness', 'Edging', 'Selects and adjusts the working edge deliberately.', 'Does the rider understand how edge angle changes speed?'),
+            ('slope-setup', 'Slope setup', 'Safety', 'Attaches the board and starts safely on a slope.', 'Can the rider set up without sliding unexpectedly?'))),
+        ('rip', 4, 'Turning', 'Link heel- and toe-side turns with controlled edge changes.', 'Beginner and easy green terrain', 'Links beginner turns in both directions with speed control.', 'CASI QuickRide-informed', casi_url, (
+            ('garland', 'Garlands', 'Pivoting', 'Changes direction toward and away from the fall line on each edge.', 'Can the rider steer the board without an unintended edge change?'),
+            ('edge-change', 'Edge changes', 'Edging', 'Releases and engages edges through the fall line.', 'Is the edge change deliberate and free of catching?'),
+            ('beginner-turns', 'Linked beginner turns', 'Coordination', 'Links heel- and toe-side turns with a clear traverse.', 'Can the rider link at least six controlled turns?'),
+            ('lower-body', 'Lower-body steering', 'Pivoting', 'Uses feet and knees to guide direction rather than throwing the upper body.', 'Does steering originate primarily from the lower body?'))),
+        ('rip', 5, 'Flow', 'Build rhythm, adaptability and independent mountain use.', 'Green and easy blue runs', 'Rides linked novice turns with rhythm and selects safe speed and line.', 'CASI QuickRide-informed', casi_url, (
+            ('novice-turns', 'Novice turns', 'Coordination', 'Links rounded turns with flexion after the fall line.', 'Are turns flowing, rounded and consistently controlled?'),
+            ('speed-4s', 'Speed through the 4 S’s', 'Tactics', 'Uses shape, size and slope choices to regulate speed.', 'Does the rider adjust line instead of relying on abrupt braking?'),
+            ('flexion', 'Flexion & extension', 'Pressure', 'Uses vertical movement to support turn shape and terrain changes.', 'Is movement progressive and timed to the turn?'),
+            ('mountain-awareness', 'Independent trail use', 'Safety', 'Chooses terrain, spacing and stopping points responsibly.', 'Can the rider navigate green terrain without continuous direction?'))),
+        ('rip', 6, 'All-Mountain Rider', 'Extend turning skills to varied radius, terrain and snow conditions.', 'Blue terrain / introductory freestyle', 'Adapts riding skills and tactics confidently across intermediate terrain.', 'CASI skills-informed extension', casi_url, (
+            ('centred-mobile', 'Centred & mobile position', 'Position & Balance', 'Maintains equal-footed, relaxed mobility as terrain changes.', 'Does the rider stay centred without stiffening or bending at the waist?'),
+            ('varied-turns', 'Varied turn shape', 'Coordination', 'Changes turn radius and intensity while retaining control.', 'Can the rider alter turn size and shape on command?'),
+            ('carved-elements', 'Edged and carved elements', 'Edging', 'Develops progressive edge angle with reduced slipping.', 'Are portions of the turn cleanly edged without losing balance?'),
+            ('terrain-tactics', 'Intermediate terrain tactics', 'Tactics', 'Chooses line and movements for rolls, variable snow and simple features.', 'Does the rider adapt tactics safely to the terrain?'))),
+    )
+
+    for discipline, number, name, description, terrain, outcome, framework, source_url, skills in levels:
+        level = CurriculumLevel.query.filter_by(discipline=discipline, level_number=number).first()
+        if level is None:
+            level = CurriculumLevel(
+                discipline=discipline, level_number=number, name=name, description=description,
+                terrain=terrain, readiness_outcome=outcome, framework=framework, source_url=source_url,
+            )
+            db.session.add(level)
+            db.session.flush()
+        level.name = name
+        level.description = description
+        level.terrain = terrain
+        level.readiness_outcome = outcome
+        level.framework = framework
+        level.source_url = source_url
+        level.is_active = True
+        for sort_order, (code, skill_name, family, skill_description, prompt) in enumerate(skills, 1):
+            skill = CurriculumSkill.query.filter_by(curriculum_level_id=level.id, code=code).first()
+            if skill is None:
+                skill = CurriculumSkill(curriculum_level_id=level.id, code=code)
+                db.session.add(skill)
+            skill.name = skill_name
+            skill.skill_family = family
+            skill.description = skill_description
+            skill.assessment_prompt = prompt
+            skill.sort_order = sort_order
+            skill.is_required = True
+
+    db.session.add(AppSetting(key=setting_key, value='14 levels / 56 skills'))
+    db.session.commit()
+    return True
+
 def seed_demo_operations(seed_version='horseshoe-operations-v1'):
     """Create a clearly labelled, repeatable operating dataset for every active program."""
     setting_key = f'demo-operations:{seed_version}'
@@ -521,6 +634,7 @@ def init_db():
         
         db.session.commit()
         seed_horseshoe_catalogue()
+        seed_step_rip_curriculum()
         seed_demo_operations()
 
 def seed_demo_accounts(seed_version, passwords):
@@ -982,6 +1096,20 @@ def evaluate_student(student_id):
             completed_levels_hv_skier.append(eval.level)
         elif eval.sport_type == 'hv_snowboarder':
             completed_levels_hv_snowboarder.append(eval.level)
+
+    curriculum = {'skier': {}, 'snowboarder': {}}
+    for curriculum_level in CurriculumLevel.query.filter_by(is_active=True).all():
+        sport_key = 'skier' if curriculum_level.discipline == 'step' else 'snowboarder'
+        curriculum[sport_key][str(curriculum_level.level_number)] = {
+            'name': curriculum_level.name,
+            'description': curriculum_level.description,
+            'terrain': curriculum_level.terrain,
+            'readiness_outcome': curriculum_level.readiness_outcome,
+            'skills': [
+                {'name': skill.name, 'family': skill.skill_family, 'description': skill.description, 'assessment_prompt': skill.assessment_prompt}
+                for skill in curriculum_level.skills
+            ],
+        }
     
     return render_template('evaluate.html', student=student, 
                          available_sports=available_sports,
@@ -989,7 +1117,8 @@ def evaluate_student(student_id):
                          completed_levels_snowboarder=completed_levels_snowboarder,
                          completed_levels_snow_stars=completed_levels_snow_stars,
                          completed_levels_hv_skier=completed_levels_hv_skier,
-                         completed_levels_hv_snowboarder=completed_levels_hv_snowboarder)
+                         completed_levels_hv_snowboarder=completed_levels_hv_snowboarder,
+                         curriculum=curriculum)
 
 @app.route('/evaluations/<int:evaluation_id>')
 @login_required
@@ -1007,6 +1136,19 @@ def view_evaluation(evaluation_id):
     return render_template('view_evaluation.html', evaluation=evaluation)
 
 # Admin routes for managing programs and teams
+
+@app.route('/admin/curriculum')
+@login_required
+def manage_curriculum():
+    if current_user.user_type != 'admin':
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    levels = CurriculumLevel.query.filter_by(is_active=True).order_by(CurriculumLevel.discipline, CurriculumLevel.level_number).all()
+    return render_template(
+        'manage_curriculum.html',
+        step_levels=[level for level in levels if level.discipline == 'step'],
+        rip_levels=[level for level in levels if level.discipline == 'rip'],
+    )
 
 @app.route('/admin/programs')
 @login_required

@@ -79,6 +79,7 @@
                         <option value="">First select a sport</option>
                     </select>
                 </div>
+                <div id="curriculum-preview" class="evaluation-curriculum-preview" hidden></div>
             </div>
             
             <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
@@ -118,6 +119,7 @@ const completedLevelsSnowboarder = {{ completed_levels_snowboarder|tojson }};
 const completedLevelsSnowStars = {{ completed_levels_snow_stars|tojson }};
 const completedLevelsHvSkier = {{ completed_levels_hv_skier|tojson }};
 const completedLevelsHvSnowboarder = {{ completed_levels_hv_snowboarder|tojson }};
+const curriculum = {{ curriculum|tojson }};
 
 function selectSport(sportType) {
     // Update radio button
@@ -177,6 +179,7 @@ function updateEvaluationForm(selectedSport) {
         }
         levelSelect.appendChild(option);
     }
+    updateCurriculumPreview(selectedSport, '');
     
     // Update completed levels info
     const infoP = document.getElementById('completed-levels-info');
@@ -190,6 +193,36 @@ function updateEvaluationForm(selectedSport) {
     // Update criteria section
     updateCriteriaSection(selectedSport);
 }
+
+function updateCurriculumPreview(sportType, levelNumber) {
+    const preview = document.getElementById('curriculum-preview');
+    const level = curriculum[sportType]?.[String(levelNumber)];
+    preview.replaceChildren();
+    if (!level) { preview.hidden = true; return; }
+    const heading = document.createElement('div');
+    const title = document.createElement('h3');
+    title.textContent = `${level.name} · Skill outcomes`;
+    const meta = document.createElement('p');
+    meta.textContent = `${level.terrain} · ${level.readiness_outcome}`;
+    heading.append(title, meta);
+    const grid = document.createElement('div');
+    grid.className = 'evaluation-skill-grid';
+    level.skills.forEach(skill => {
+        const card = document.createElement('article');
+        const family = document.createElement('span'); family.textContent = skill.family;
+        const name = document.createElement('strong'); name.textContent = skill.name;
+        const description = document.createElement('p'); description.textContent = skill.description;
+        const prompt = document.createElement('small'); prompt.textContent = skill.assessment_prompt;
+        card.append(family, name, description, prompt); grid.append(card);
+    });
+    preview.append(heading, grid);
+    preview.hidden = false;
+}
+
+document.getElementById('level').addEventListener('change', function () {
+    const selectedSport = document.querySelector('input[name="sport_type"]:checked');
+    updateCurriculumPreview(selectedSport?.value, this.value);
+});
 
 function updateCriteriaSection(selectedSport) {
     const criteriaDiv = document.getElementById('sport-criteria');
