@@ -29,6 +29,18 @@ function resolveSchool(value: string) {
   return SCHOOL_DIRECTORY[SCHOOL_ALIASES[normalized] ?? normalized];
 }
 
+function BrandMark({ compact = false }: { compact?: boolean }) {
+  return (
+    <View style={[styles.logoMark, compact && styles.logoMarkCompact]} accessibilityElementsHidden>
+      <View style={styles.logoMountainLeft} />
+      <View style={styles.logoMountainRight} />
+      <View style={styles.logoSnowLeft} />
+      <View style={styles.logoSnowRight} />
+      <View style={styles.logoGround} />
+    </View>
+  );
+}
+
 export default function App() {
   const webView = useRef<WebView>(null);
   const [screen, setScreen] = useState<AppScreen>('splash');
@@ -97,9 +109,9 @@ export default function App() {
       <SafeAreaView style={styles.splash}>
         <StatusBar style="light" />
         <View style={styles.splashGlow} />
-        <Image source={require('./assets/icon.png')} style={styles.splashLogo} accessibilityLabel="Snow School Coach" />
+        <BrandMark />
         <Text style={styles.splashKicker}>SNOW SCHOOL</Text>
-        <Text style={styles.splashTitle}>Coach</Text>
+        <Text style={styles.splashTitle}>COACH</Text>
         <Text style={styles.splashTagline}>Your day on the hill, all in one place.</Text>
         <ActivityIndicator style={styles.splashLoader} color="#ffffff" />
       </SafeAreaView>
@@ -115,7 +127,7 @@ export default function App() {
           <View style={styles.schoolHero}>
             <View style={styles.mountainOne} />
             <View style={styles.mountainTwo} />
-            <View style={styles.schoolBrand}><View style={styles.brandMark} /><Text style={styles.brandText}>SNOW SCHOOL COACH</Text></View>
+            <View style={styles.schoolBrand}><BrandMark compact /><View><Text style={styles.brandText}>SNOW SCHOOL</Text><Text style={styles.brandSubtext}>COACH PLATFORM</Text></View></View>
             <Text style={styles.schoolHeroTitle}>Find your{`\n`}home mountain.</Text>
           </View>
           <View style={styles.schoolCard}>
@@ -152,7 +164,7 @@ export default function App() {
       <StatusBar style="light" />
       <View style={styles.topBar}>
         {canGoBack && !isTabRoot && !isLogin ? <TouchableOpacity accessibilityLabel="Go back" accessibilityRole="button" style={styles.headerButton} onPress={() => webView.current?.goBack()}><Text style={styles.backChevron}>‹</Text></TouchableOpacity> : <View style={styles.headerButton} />}
-        <View style={styles.headerTitle}><Text style={styles.kicker}>{school?.name.toUpperCase()}</Text><Text style={styles.title}>{screenTitle}</Text></View>
+        <View style={styles.headerTitle}><Text style={styles.kicker}>SNOW SCHOOL · {school?.name.toUpperCase()}</Text><Text style={styles.title}>{screenTitle}</Text></View>
         <TouchableOpacity accessibilityLabel="School and app options" accessibilityRole="button" style={styles.headerButton} onPress={() => setMenuOpen(true)}><Text style={styles.schoolMenu}>•••</Text></TouchableOpacity>
       </View>
       {loading && !offline ? <View style={styles.loadingBar}><ActivityIndicator size="small" color="#15352f" /><Text style={styles.loadingText}>Loading…</Text></View> : null}
@@ -224,38 +236,44 @@ const styles = StyleSheet.create({
   sheetHandle: { width: 36, height: 5, backgroundColor: '#c5cdc8', borderRadius: 3, marginBottom: 12 },
   sheetAction: { minHeight: 52, borderRadius: 14, backgroundColor: '#fff', width: '90%', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   sheetActionText: { color: '#15352f', fontSize: 16, fontWeight: '600' },
-  app: { flex: 1, backgroundColor: '#15352f' },
-  splash: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#15352f', overflow: 'hidden' },
-  splashGlow: { position: 'absolute', width: 430, height: 430, borderRadius: 215, backgroundColor: '#224b43', opacity: 0.72 },
-  splashLogo: { width: 112, height: 112, borderRadius: 24, marginBottom: 28 },
-  splashKicker: { color: '#c8d5d1', fontSize: 11, fontWeight: '800', letterSpacing: 3.2 },
-  splashTitle: { color: '#ffffff', fontSize: 58, fontWeight: '300', letterSpacing: -2, marginTop: 4 },
-  splashTagline: { color: '#c8d5d1', fontSize: 15, marginTop: 14 },
+  app: { flex: 1, backgroundColor: '#142b3a' },
+  splash: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#142b3a', overflow: 'hidden' },
+  splashGlow: { position: 'absolute', width: 430, height: 430, borderRadius: 215, backgroundColor: '#1d3b4e', opacity: 0.62 },
+  logoMark: { width: 104, height: 104, borderRadius: 7, backgroundColor: '#142b3a', overflow: 'hidden', marginBottom: 28, borderWidth: 1, borderColor: '#36576a' },
+  logoMarkCompact: { width: 38, height: 38, borderRadius: 3, marginBottom: 0, borderColor: '#4b6a7b' },
+  logoMountainLeft: { position: 'absolute', width: '45%', height: '45%', left: '14%', bottom: '26%', backgroundColor: '#287fa3', transform: [{ rotate: '45deg' }] },
+  logoMountainRight: { position: 'absolute', width: '38%', height: '38%', right: '12%', bottom: '26%', backgroundColor: '#287fa3', transform: [{ rotate: '45deg' }] },
+  logoSnowLeft: { position: 'absolute', width: '23%', height: 2, left: '22%', top: '40%', backgroundColor: '#ffffff', transform: [{ rotate: '-43deg' }] },
+  logoSnowRight: { position: 'absolute', width: '19%', height: 2, right: '22%', top: '45%', backgroundColor: '#ffffff', transform: [{ rotate: '43deg' }] },
+  logoGround: { position: 'absolute', left: '15%', right: '15%', height: 2, bottom: '18%', backgroundColor: '#ffffff' },
+  splashKicker: { color: '#a9c6d2', fontSize: 11, fontWeight: '700', letterSpacing: 3.2, marginTop: 2 },
+  splashTitle: { color: '#ffffff', fontSize: 48, fontWeight: '700', letterSpacing: 2, marginTop: 8 },
+  splashTagline: { color: '#a9c6d2', fontSize: 15, marginTop: 14 },
   splashLoader: { position: 'absolute', bottom: 54 },
   schoolScreen: { flex: 1, backgroundColor: '#f6f2ea' },
   schoolLayout: { flex: 1 },
-  schoolHero: { height: '39%', minHeight: 270, backgroundColor: '#15352f', padding: 24, justifyContent: 'space-between', overflow: 'hidden' },
+  schoolHero: { height: '39%', minHeight: 270, backgroundColor: '#142b3a', padding: 24, justifyContent: 'space-between', overflow: 'hidden' },
   schoolBrand: { flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 2 },
-  brandMark: { width: 9, height: 26, backgroundColor: '#b64a35' },
-  brandText: { color: '#ffffff', fontSize: 11, fontWeight: '800', letterSpacing: 1.8 },
+  brandText: { color: '#ffffff', fontSize: 11, fontWeight: '700', letterSpacing: 1.6 },
+  brandSubtext: { color: '#a9c6d2', fontSize: 7, fontWeight: '600', letterSpacing: 1.3, marginTop: 3 },
   schoolHeroTitle: { color: '#ffffff', fontSize: 43, fontWeight: '300', lineHeight: 46, letterSpacing: -1.2, zIndex: 2, marginBottom: 24 },
-  mountainOne: { position: 'absolute', right: -90, bottom: -110, width: 360, height: 300, backgroundColor: '#214c43', transform: [{ rotate: '42deg' }] },
-  mountainTwo: { position: 'absolute', right: 110, bottom: -180, width: 330, height: 330, backgroundColor: '#1b4038', transform: [{ rotate: '42deg' }] },
+  mountainOne: { position: 'absolute', right: -90, bottom: -110, width: 360, height: 300, backgroundColor: '#1f526b', transform: [{ rotate: '42deg' }] },
+  mountainTwo: { position: 'absolute', right: 110, bottom: -180, width: 330, height: 330, backgroundColor: '#193f53', transform: [{ rotate: '42deg' }] },
   schoolCard: { flex: 1, backgroundColor: '#f6f2ea', paddingHorizontal: 26, paddingTop: 31 },
-  stepLabel: { color: '#b64a35', fontSize: 10, fontWeight: '800', letterSpacing: 2 },
-  schoolTitle: { color: '#15352f', fontSize: 30, fontWeight: '600', letterSpacing: -0.6, marginTop: 9 },
+  stepLabel: { color: '#287fa3', fontSize: 10, fontWeight: '800', letterSpacing: 2 },
+  schoolTitle: { color: '#142b3a', fontSize: 30, fontWeight: '600', letterSpacing: -0.6, marginTop: 9 },
   schoolCopy: { color: '#5d6b67', fontSize: 15, lineHeight: 22, marginTop: 10, marginBottom: 27 },
-  inputLabel: { color: '#15352f', fontSize: 10, fontWeight: '800', letterSpacing: 1.6, marginBottom: 8 },
-  schoolInput: { height: 58, borderRadius: 12, borderWidth: 1, borderColor: '#b9c2be', backgroundColor: '#ffffff', paddingHorizontal: 17, color: '#15352f', fontSize: 17, fontWeight: '700', letterSpacing: 1.1 },
+  inputLabel: { color: '#142b3a', fontSize: 10, fontWeight: '800', letterSpacing: 1.6, marginBottom: 8 },
+  schoolInput: { height: 58, borderRadius: 8, borderWidth: 1, borderColor: '#b9c7ce', backgroundColor: '#ffffff', paddingHorizontal: 17, color: '#142b3a', fontSize: 17, fontWeight: '700', letterSpacing: 1.1 },
   schoolInputError: { borderColor: '#a92f24' },
   errorText: { color: '#a92f24', fontSize: 13, marginTop: 8 },
-  continueButton: { height: 58, borderRadius: 12, backgroundColor: '#b64a35', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 18 },
+  continueButton: { height: 58, borderRadius: 8, backgroundColor: '#287fa3', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 18 },
   continueButtonDisabled: { opacity: 0.45 },
   continueText: { color: '#ffffff', fontSize: 12, fontWeight: '800', letterSpacing: 1.8 },
   continueArrow: { color: '#ffffff', fontSize: 23 },
   helpText: { color: '#73807c', fontSize: 12, textAlign: 'center', marginTop: 17 },
-  helpCode: { color: '#15352f', fontWeight: '800' },
-  topBar: { minHeight: 62, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#15352f' },
+  helpCode: { color: '#142b3a', fontWeight: '800' },
+  topBar: { minHeight: 62, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#142b3a' },
   headerButton: { width: 42, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, alignItems: 'center' },
   backChevron: { color: '#ffffff', fontSize: 34, lineHeight: 36, fontWeight: '300' },
@@ -270,7 +288,7 @@ const styles = StyleSheet.create({
   navItem: { flex: 1, minHeight: 62, alignItems: 'center', justifyContent: 'center', gap: 3 },
   navIcon: { color: '#8b9692', fontSize: 17 },
   navLabel: { color: '#6d7975', fontSize: 10, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase' },
-  navActive: { color: '#b43d29' },
+  navActive: { color: '#287fa3' },
   loading: { position: 'absolute', inset: 0, backgroundColor: '#fbfaf6', alignItems: 'center', justifyContent: 'center', gap: 14 },
   loadingText: { color: '#15352f', fontSize: 14 },
 });

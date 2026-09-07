@@ -4,7 +4,7 @@
     "slug": "snow-school-coach",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/brand-icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
