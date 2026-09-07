@@ -1,6 +1,6 @@
-const CACHE = 'snow-school-coach-v3';
+const CACHE = 'snow-school-coach-v4';
 const ASSETS = [
-  '/static/css/style.css?v=20260907c',
+  '/static/css/style.css?v=20260907d',
   '/static/js/app.js?v=20260907c',
   '/static/img/horseshoe-logo.png'
 ];
