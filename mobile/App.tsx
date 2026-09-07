@@ -18,7 +18,7 @@ const NATIVE_SHELL_CSS = `
     if (!style) {
       style = document.createElement('style');
       style.id = 'snow-school-native-shell';
-      style.textContent = '.site-header,.utility-bar,.site-footer,.coach-bottom-nav{display:none!important}.main-content{padding-top:20px!important;padding-bottom:32px!important}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif!important;background:#f4f6f4!important}h1,h2,h3{font-family:inherit!important;letter-spacing:-.03em}.card,.coach-class-card,.auth-card,.session-roster-form{border-radius:16px!important;box-shadow:none!important}.btn,input,select,textarea{border-radius:10px!important;min-height:44px}input,select,textarea{font-size:16px!important}.btn{min-height:48px}.auth-container{min-height:0!important}.auth-card{padding:24px!important}.coach-today-header h2{font-size:28px!important}';
+      style.textContent = ':root{--forest:#142b3a!important;--forest-2:#1d4358!important;--rust:#287fa3!important;--rust-dark:#206885!important;--cream:#e8f1f4!important;--snow:#f2f7f8!important;--ink:#142b3a!important;--muted:#60717c!important;--line:#d4e0e4!important;--success:#39785d!important}.site-header,.utility-bar,.site-footer,.coach-bottom-nav{display:none!important}.main-content{padding-top:20px!important;padding-bottom:32px!important}body{font-family:-apple-system,BlinkMacSystemFont,sans-serif!important;background:#f2f7f8!important;color:#142b3a!important}h1,h2,h3{font-family:inherit!important;letter-spacing:-.03em}.card,.coach-class-card,.auth-card,.session-roster-form,.stat-card,.score-card{border-radius:12px!important;box-shadow:none!important;border-color:#d4e0e4!important}.btn,input,select,textarea{border-radius:8px!important;min-height:44px}input,select,textarea{font-size:16px!important}.btn{min-height:48px;box-shadow:none!important}.btn-primary,.btn-nav{background:#287fa3!important;color:#fff!important}.auth-container{min-height:0!important}.auth-card{padding:24px!important}.coach-today-header h2{font-size:28px!important}.eyebrow,.highlight,.score-value,.program-average{color:#287fa3!important}.coach-class-card .coach-card-status.status-on_hill{background:#287fa3!important}.data-table th,.attendance-table th,.session-summary,.coach-status-panel{background:#142b3a!important}';
       document.head.appendChild(style);
     }
   })(); true;
@@ -167,7 +167,7 @@ export default function App() {
         <View style={styles.headerTitle}><Text style={styles.kicker}>SNOW SCHOOL · {school?.name.toUpperCase()}</Text><Text style={styles.title}>{screenTitle}</Text></View>
         <TouchableOpacity accessibilityLabel="School and app options" accessibilityRole="button" style={styles.headerButton} onPress={() => setMenuOpen(true)}><Text style={styles.schoolMenu}>•••</Text></TouchableOpacity>
       </View>
-      {loading && !offline ? <View style={styles.loadingBar}><ActivityIndicator size="small" color="#15352f" /><Text style={styles.loadingText}>Loading…</Text></View> : null}
+      {loading && !offline ? <View style={styles.loadingBar}><ActivityIndicator size="small" color="#287fa3" /><Text style={styles.loadingText}>Loading…</Text></View> : null}
       <View style={{ flex: 1 }}>
       <WebView
         ref={webView}
@@ -194,7 +194,7 @@ export default function App() {
         onLoadEnd={() => setLoading(false)}
         onError={() => { setOffline(true); setLoading(false); }}
         onHttpError={({ nativeEvent }) => { if (nativeEvent.url === currentUrl && nativeEvent.statusCode >= 500) { setOffline(true); setLoading(false); } }}
-        renderLoading={() => <View style={styles.loading}><ActivityIndicator size="large" color="#b43d29" /><Text style={styles.loadingText}>Opening {school?.name}…</Text></View>}
+        renderLoading={() => <View style={styles.loading}><ActivityIndicator size="large" color="#287fa3" /><Text style={styles.loadingText}>Opening {school?.name}…</Text></View>}
         style={styles.webView}
       />
       {offline ? <View style={styles.loading} accessibilityLiveRegion="polite"><Text style={styles.schoolTitle}>Couldn’t load your portal</Text><Text style={styles.connectionCopy}>Check your connection and try again. Your saved records are still in your school portal.</Text><TouchableOpacity accessibilityRole="button" style={styles.sheetAction} onPress={() => { setOffline(false); webView.current?.reload(); }}><Text style={styles.sheetActionText}>Try again</Text></TouchableOpacity></View> : null}
@@ -232,10 +232,10 @@ const styles = StyleSheet.create({
   loadingBar: { minHeight: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#eef2ef' },
   connectionCopy: { color: '#5d6b67', fontSize: 15, lineHeight: 22, marginVertical: 14, textAlign: 'center', paddingHorizontal: 16 },
   sheetBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,.4)' },
-  sheet: { backgroundColor: '#f4f6f4', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center' },
+  sheet: { backgroundColor: '#f2f7f8', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, alignItems: 'center' },
   sheetHandle: { width: 36, height: 5, backgroundColor: '#c5cdc8', borderRadius: 3, marginBottom: 12 },
   sheetAction: { minHeight: 52, borderRadius: 14, backgroundColor: '#fff', width: '90%', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  sheetActionText: { color: '#15352f', fontSize: 16, fontWeight: '600' },
+  sheetActionText: { color: '#142b3a', fontSize: 16, fontWeight: '600' },
   app: { flex: 1, backgroundColor: '#142b3a' },
   splash: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#142b3a', overflow: 'hidden' },
   splashGlow: { position: 'absolute', width: 430, height: 430, borderRadius: 215, backgroundColor: '#1d3b4e', opacity: 0.62 },
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   splashTitle: { color: '#ffffff', fontSize: 48, fontWeight: '700', letterSpacing: 2, marginTop: 8 },
   splashTagline: { color: '#a9c6d2', fontSize: 15, marginTop: 14 },
   splashLoader: { position: 'absolute', bottom: 54 },
-  schoolScreen: { flex: 1, backgroundColor: '#f6f2ea' },
+  schoolScreen: { flex: 1, backgroundColor: '#f2f7f8' },
   schoolLayout: { flex: 1 },
   schoolHero: { height: '39%', minHeight: 270, backgroundColor: '#142b3a', padding: 24, justifyContent: 'space-between', overflow: 'hidden' },
   schoolBrand: { flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 2 },
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   schoolHeroTitle: { color: '#ffffff', fontSize: 43, fontWeight: '300', lineHeight: 46, letterSpacing: -1.2, zIndex: 2, marginBottom: 24 },
   mountainOne: { position: 'absolute', right: -90, bottom: -110, width: 360, height: 300, backgroundColor: '#1f526b', transform: [{ rotate: '42deg' }] },
   mountainTwo: { position: 'absolute', right: 110, bottom: -180, width: 330, height: 330, backgroundColor: '#193f53', transform: [{ rotate: '42deg' }] },
-  schoolCard: { flex: 1, backgroundColor: '#f6f2ea', paddingHorizontal: 26, paddingTop: 31 },
+  schoolCard: { flex: 1, backgroundColor: '#f2f7f8', paddingHorizontal: 26, paddingTop: 31 },
   stepLabel: { color: '#287fa3', fontSize: 10, fontWeight: '800', letterSpacing: 2 },
   schoolTitle: { color: '#142b3a', fontSize: 30, fontWeight: '600', letterSpacing: -0.6, marginTop: 9 },
   schoolCopy: { color: '#5d6b67', fontSize: 15, lineHeight: 22, marginTop: 10, marginBottom: 27 },
@@ -283,12 +283,12 @@ const styles = StyleSheet.create({
   offlineBanner: { paddingHorizontal: 16, minHeight: 46, backgroundColor: '#f5e3e0', flexDirection: 'row', alignItems: 'center' },
   offlineText: { flex: 1, color: '#771f19', fontSize: 12 },
   retry: { color: '#771f19', fontWeight: '700', textTransform: 'uppercase' },
-  webView: { flex: 1, backgroundColor: '#fbfaf6' },
+  webView: { flex: 1, backgroundColor: '#f2f7f8' },
   bottomNav: { minHeight: 66, flexDirection: 'row', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#dce1de' },
   navItem: { flex: 1, minHeight: 62, alignItems: 'center', justifyContent: 'center', gap: 3 },
   navIcon: { color: '#8b9692', fontSize: 17 },
   navLabel: { color: '#6d7975', fontSize: 10, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase' },
   navActive: { color: '#287fa3' },
-  loading: { position: 'absolute', inset: 0, backgroundColor: '#fbfaf6', alignItems: 'center', justifyContent: 'center', gap: 14 },
-  loadingText: { color: '#15352f', fontSize: 14 },
+  loading: { position: 'absolute', inset: 0, backgroundColor: '#f2f7f8', alignItems: 'center', justifyContent: 'center', gap: 14 },
+  loadingText: { color: '#142b3a', fontSize: 14 },
 });
