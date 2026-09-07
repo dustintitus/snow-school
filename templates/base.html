@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v='20260907c') }}">
 </head>
 <body class="{% block body_class %}{% endblock %}">
     <header class="site-header">
@@ -47,6 +47,6 @@
         {% block content %}{% endblock %}
     </main>
     <footer class="site-footer"><div class="shell footer-inner"><div><strong>Snow School</strong><span>{% if current_user.is_authenticated %}Horseshoe Valley Resort{% else %}Progress lives here{% endif %}</span></div><p>Learn with confidence. Track every breakthrough.</p></div></footer>
-    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/app.js', v='20260907c') }}" defer></script>
 </body>
 </html>

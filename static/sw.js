@@ -1,7 +1,7 @@
-const CACHE = 'snow-school-coach-v1';
+const CACHE = 'snow-school-coach-v3';
 const ASSETS = [
-  '/static/css/style.css',
-  '/static/js/app.js',
+  '/static/css/style.css?v=20260907c',
+  '/static/js/app.js?v=20260907c',
   '/static/img/horseshoe-logo.png'
 ];
 
@@ -17,5 +17,13 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || event.request.mode === 'navigate') return;
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)));
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        const copy = response.clone();
+        caches.open(CACHE).then(cache => cache.put(event.request, copy));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
+  );
 });

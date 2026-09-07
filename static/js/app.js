@@ -1,5 +1,5 @@
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/static/sw.js'));
+  window.addEventListener('load', () => navigator.serviceWorker.register('/static/sw.js?v=3'));
 }
 
 const connectivity = document.querySelector('[data-connectivity]');
