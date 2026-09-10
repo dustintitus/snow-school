@@ -497,6 +497,131 @@ def seed_demo_operations(seed_version='horseshoe-operations-v1'):
     db.session.commit()
     return True
 
+def seed_horseshoe_showcase(seed_version='horseshoe-showcase-2026-09-v1'):
+    """Give the three public demo accounts a connected, presentation-ready story."""
+    setting_key = f'demo-showcase:{seed_version}'
+    if db.session.get(AppSetting, setting_key):
+        return False
+
+    instructor = User.query.filter_by(username='instructor1').first()
+    student_account = User.query.filter_by(username='student1').first()
+    program = Program.query.filter_by(name='High Flyers').first()
+    if not instructor or not student_account or not program:
+        return False
+
+    instructor.full_name = 'Jordan Parker'
+    student_account.full_name = 'Sam Bennett'
+    team = Team.query.filter_by(name='High Flyers · Saturday AM').first()
+    if team is None:
+        team = Team(name='High Flyers · Saturday AM', program_id=program.id,
+                    instructor_id=instructor.id, team_type='class')
+        db.session.add(team)
+        db.session.flush()
+    else:
+        team.instructor_id = instructor.id
+
+    roster = (
+        ('student1', 'Sam Bennett', True, False),
+        ('showcase_avery', 'Avery Martin', True, False),
+        ('showcase_mia', 'Mia Campbell', True, False),
+        ('showcase_noah', 'Noah Wilson', True, False),
+        ('showcase_sophie', 'Sophie Roy', True, False),
+        ('showcase_lucas', 'Lucas Taylor', True, False),
+        ('showcase_chloe', 'Chloe Robinson', True, False),
+    )
+    participants = []
+    for index, (username, full_name, skier, snowboarder) in enumerate(roster):
+        participant = User.query.filter_by(username=username).first()
+        if participant is None:
+            participant = User(
+                username=username,
+                email=f'{username}@demo.snowschool.app',
+                password_hash='!demo-data-no-login',
+                full_name=full_name,
+                user_type='student',
+            )
+            db.session.add(participant)
+            db.session.flush()
+        participant.full_name = full_name
+        participant.team_id = team.id
+        participant.instructor_id = instructor.id
+        participant.participates_skier = skier
+        participant.participates_snowboarder = snowboarder
+        participants.append(participant)
+
+        enrollment = Enrollment.query.filter_by(
+            student_id=participant.id, program_id=program.id, season=CURRENT_SEASON
+        ).first()
+        if enrollment is None:
+            db.session.add(Enrollment(
+                student_id=participant.id, program_id=program.id, team_id=team.id,
+                season=CURRENT_SEASON, status='registered',
+                registered_at=datetime(2026, 9, 2) + timedelta(days=index),
+            ))
+        else:
+            enrollment.team_id = team.id
+            enrollment.status = 'registered'
+
+        if index in {0, 2, 4, 6} and not Enrollment.query.filter_by(
+            student_id=participant.id, program_id=program.id, season='2025-2026'
+        ).first():
+            db.session.add(Enrollment(
+                student_id=participant.id, program_id=program.id, team_id=team.id,
+                season='2025-2026', status='completed',
+                registered_at=datetime(2025, 9, 15), completed_at=datetime(2026, 3, 15),
+            ))
+
+    demo_day = date(2026, 9, 11)
+    for offset in (-21, -14, -7, 0):
+        session_date = demo_day + timedelta(days=offset)
+        session = ClassSession.query.filter_by(team_id=team.id, session_date=session_date).first()
+        if session is None:
+            session = ClassSession(team_id=team.id, session_date=session_date, updated_by=instructor.id)
+            db.session.add(session)
+        session.status = 'in_progress' if offset == 0 else 'complete'
+        session.meeting_point = 'Learning Centre flag, beside the magic carpet'
+        session.coach_note = 'Warm-up, STEP skill stations, then a confidence lap on the green run.'
+        for index, participant in enumerate(participants):
+            attendance = Attendance.query.filter_by(
+                student_id=participant.id, team_id=team.id, session_date=session_date
+            ).first()
+            if attendance is None:
+                db.session.add(Attendance(
+                    student_id=participant.id, team_id=team.id, session_date=session_date,
+                    attended=not (offset == -14 and index == 3),
+                    notes='Working on turn shape and independent speed control.',
+                    recorded_by=instructor.id,
+                ))
+
+    evaluation_specs = (
+        (participants[0], 2, 4.1, 'Confident wedge turns; ready to focus on smoother edge release and linked rhythm.'),
+        (participants[0], 3, 3.8, 'Good green-run independence. Continue progressive matching through the end of each turn.'),
+        (participants[1], 3, 4.3, 'Strong rhythm and safe trail choices. Ready for parallel-foundation activities.'),
+        (participants[2], 2, 3.6, 'Speed control is improving; keep developing rounded turn shape.'),
+        (participants[4], 4, 4.0, 'Consistent parallel stance with improving outside-ski pressure.'),
+    )
+    for index, (participant, level, score, comments) in enumerate(evaluation_specs):
+        evaluation = Evaluation.query.filter_by(
+            student_id=participant.id, sport_type='skier', level=level
+        ).first()
+        if evaluation is None:
+            evaluation = Evaluation(
+                student_id=participant.id, instructor_id=instructor.id,
+                sport_type='skier', level=level,
+                skills_score=score, attitude_score=min(5, score + .4),
+                performance_score=max(1, score - .1),
+                technical_score=score, edging_score=max(1, score - .2),
+                pressure_control_score=max(1, score - .3), turn_shape_score=score,
+                comments=comments, created_at=datetime(2026, 9, 8, 15, 30) + timedelta(minutes=index * 12),
+            )
+            db.session.add(evaluation)
+        else:
+            evaluation.instructor_id = instructor.id
+
+    db.session.add(AppSetting(key=setting_key, value='7 participants / 4 sessions / 5 evaluations'))
+    db.session.commit()
+    return True
+
 def build_admin_dashboard(season=CURRENT_SEASON):
     """Build a source-backed operational summary from programs and enrollment history."""
     enrollments = Enrollment.query.all()
@@ -636,6 +761,7 @@ def init_db():
         seed_horseshoe_catalogue()
         seed_step_rip_curriculum()
         seed_demo_operations()
+        seed_horseshoe_showcase()
 
 def seed_demo_accounts(seed_version, passwords):
     """Apply an explicitly versioned demo-account reset exactly once."""

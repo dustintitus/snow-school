@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 os.environ['FLASK_ENV'] = 'production'
 
 # Import the Flask app
-from app import app, db, seed_demo_accounts, seed_demo_operations, seed_horseshoe_catalogue, seed_step_rip_curriculum
+from app import app, db, seed_demo_accounts, seed_demo_operations, seed_horseshoe_catalogue, seed_horseshoe_showcase, seed_step_rip_curriculum
 
 # Initialize database on cold start (production-safe)
 def initialize_database():
@@ -24,6 +24,7 @@ def initialize_database():
             seed_horseshoe_catalogue()
             seed_step_rip_curriculum()
             seed_demo_operations()
+            seed_horseshoe_showcase()
             seed_demo_accounts(
                 os.environ.get('DEMO_ACCOUNT_SEED_VERSION'),
                 {

@@ -16,7 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v='20260907d') }}">
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% if current_user.is_authenticated %}authenticated-app {% endif %}{% block body_class %}{% endblock %}">
     <header class="site-header">
         <div class="utility-bar">
             <div class="shell utility-inner">{% if current_user.is_authenticated %}<span>Horseshoe Valley, Ontario</span><span class="utility-season">Winter programs · Progress made visible</span>{% else %}<span>Built for snow schools everywhere</span><span class="utility-season">Ski · Ride · Coach · Progress</span>{% endif %}</div>
