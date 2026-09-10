@@ -62,9 +62,9 @@
                     {% else %}HV Level {{ eval.level }}{% endif %}
                     {% endif %}
                 </td>
-                <td>{{ eval.skills_score }}/10</td>
-                <td>{{ eval.attitude_score }}/10</td>
-                <td>{{ eval.performance_score }}/10</td>
+                <td>{{ '%.1f'|format(eval.skills_score) }}/10</td>
+                <td>{{ '%.1f'|format(eval.attitude_score) }}/10</td>
+                <td>{{ '%.1f'|format(eval.performance_score) }}/10</td>
                 <td><strong>{{ eval.average_score }}/10</strong></td>
                 <td>
                     <a href="{{ url_for('view_evaluation', evaluation_id=eval.id) }}" class="btn btn-sm btn-secondary">View Details</a>
