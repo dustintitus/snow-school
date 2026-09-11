@@ -196,7 +196,7 @@
     {% endif %}
 
     <div class="mt-4">
-        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        <a href="{{ url_for('parent_child_evaluations', student_id=evaluation.student_id) if current_user.user_type == 'parent' else url_for('dashboard') }}" class="btn btn-secondary">← Back to {{ 'History' if current_user.user_type == 'parent' else 'Dashboard' }}</a>
     </div>
 </div>
 {% endblock %}

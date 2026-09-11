@@ -3,7 +3,7 @@ import secrets
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, AppSetting, User, Evaluation, Program, ProgramProfile, Enrollment, CurriculumLevel, CurriculumSkill, Team, Attendance, ClassSession
+from models import db, AppSetting, User, ParentStudent, Evaluation, Program, ProgramProfile, Enrollment, CurriculumLevel, CurriculumSkill, Team, Attendance, ClassSession
 from datetime import datetime, date, timedelta
 from config import config
 import logging
@@ -797,6 +797,45 @@ def seed_demo_accounts(seed_version, passwords):
     db.session.commit()
     return True
 
+def seed_demo_parent(seed_version, password):
+    """Create a scoped family demo account without embedding its password in source."""
+    if not seed_version or not password:
+        return False
+    student = User.query.filter_by(username='student1', user_type='student').first()
+    if student is None:
+        return False
+
+    setting_key = f'demo-parent-seed:{seed_version}'
+    parent = User.query.filter_by(username='parent.demo').first()
+    changed = False
+    if parent is None:
+        parent = User(
+            username='parent.demo',
+            email='parent.demo@snowschool.app',
+            full_name='Parent Demo',
+            user_type='parent',
+            password_hash='',
+        )
+        db.session.add(parent)
+        db.session.flush()
+        changed = True
+    if parent.user_type != 'parent':
+        parent.user_type = 'parent'
+        changed = True
+    if not parent.password_hash or not check_password_hash(parent.password_hash, password):
+        parent.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        changed = True
+    if ParentStudent.query.filter_by(parent_id=parent.id, student_id=student.id).first() is None:
+        db.session.add(ParentStudent(parent_id=parent.id, student_id=student.id))
+        changed = True
+    if db.session.get(AppSetting, setting_key) is None:
+        db.session.add(AppSetting(key=setting_key, value='Demo Student'))
+        changed = True
+    if not changed:
+        return False
+    db.session.commit()
+    return True
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -839,7 +878,10 @@ def login():
                 flash('Please enter both username and password', 'error')
                 return render_template('login.html', next_url=next_url)
             
-            user = User.query.filter_by(username=username).first()
+            # Parents commonly remember their email more readily than a generated username.
+            user = User.query.filter(
+                (User.username == username) | (db.func.lower(User.email) == username.lower())
+            ).first()
             
             if user:
                 password_valid = check_password_hash(user.password_hash, password)
@@ -899,6 +941,10 @@ def dashboard():
                 ).order_by(Evaluation.created_at.desc()).first()
             }
         return render_template('dashboard_instructor.html', students=students, evaluations=recent_evaluations, teams=instructor_teams or [], today=today, team_activity=team_activity)
+    elif user_type == 'parent':
+        children = sorted(current_user.children, key=lambda child: child.full_name.lower())
+        evaluation_count = sum(len(child.evaluations_received) for child in children)
+        return render_template('dashboard_parent.html', children=children, evaluation_count=evaluation_count)
     else:
         evaluations = Evaluation.query.filter_by(student_id=current_user.id).order_by(Evaluation.level).all()
         return render_template('dashboard_student.html', evaluations=evaluations)
@@ -949,7 +995,7 @@ def register():
         participates_hv_skier = request.form.get('participates_hv_skier') == 'on'
         participates_hv_snowboarder = request.form.get('participates_hv_snowboarder') == 'on'
         
-        if not all([username, email, password, full_name]) or user_type not in {'admin', 'instructor', 'student'}:
+        if not all([username, email, password, full_name]) or user_type not in {'admin', 'instructor', 'student', 'parent'}:
             flash('Please complete all required account fields', 'error')
             return redirect(url_for('register'))
         if len(password) < 8:
@@ -976,6 +1022,12 @@ def register():
         
         db.session.add(new_user)
         db.session.flush()  # Flush to get the user ID
+
+        if user_type == 'parent':
+            for student_id in request.form.getlist('student_ids'):
+                student = db.session.get(User, int(student_id))
+                if student and student.user_type == 'student':
+                    db.session.add(ParentStudent(parent_id=new_user.id, student_id=student.id))
         
         # Auto-update participation flags based on team program if team is assigned
         if user_type == 'student' and team_id:
@@ -991,7 +1043,8 @@ def register():
     instructors = User.query.filter_by(user_type='instructor').all()
     teams = Team.query.all()
     programs = Program.query.all()
-    return render_template('register.html', instructors=instructors, teams=teams, programs=programs)
+    students = User.query.filter_by(user_type='student').order_by(User.full_name).all()
+    return render_template('register.html', instructors=instructors, teams=teams, programs=programs, students=students)
 
 @app.route('/admin/edit_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
@@ -1011,7 +1064,8 @@ def edit_user(user_id):
                 instructors = User.query.filter_by(user_type='instructor').all()
                 teams = Team.query.all()
                 programs = Program.query.all()
-                return render_template('edit_user.html', user=user, instructors=instructors, teams=teams, programs=programs)
+                students = User.query.filter_by(user_type='student').order_by(User.full_name).all()
+                return render_template('edit_user.html', user=user, instructors=instructors, teams=teams, programs=programs, students=students)
         
         # Update user fields
         user.username = new_username
@@ -1023,7 +1077,23 @@ def edit_user(user_id):
         user.email = new_email
         user.full_name = request.form.get('full_name', '').strip()
         user_type = request.form.get('user_type')
+        if user_type not in {'admin', 'instructor', 'student', 'parent'}:
+            flash('Please choose a valid user type', 'error')
+            return redirect(url_for('edit_user', user_id=user.id))
         user.user_type = user_type
+
+        if user_type == 'parent':
+            selected_student_ids = {
+                int(value) for value in request.form.getlist('student_ids') if value.isdigit()
+            }
+            ParentStudent.query.filter_by(parent_id=user.id).delete(synchronize_session=False)
+            valid_students = User.query.filter(
+                User.user_type == 'student', User.id.in_(selected_student_ids)
+            ).all() if selected_student_ids else []
+            for student in valid_students:
+                db.session.add(ParentStudent(parent_id=user.id, student_id=student.id))
+        else:
+            ParentStudent.query.filter_by(parent_id=user.id).delete(synchronize_session=False)
         
         # Update password if provided
         new_password = request.form.get('password', '').strip()
@@ -1072,8 +1142,22 @@ def edit_user(user_id):
     instructors = User.query.filter_by(user_type='instructor').all()
     teams = Team.query.all()
     programs = Program.query.all()
+    students = User.query.filter_by(user_type='student').order_by(User.full_name).all()
     
-    return render_template('edit_user.html', user=user, instructors=instructors, teams=teams, programs=programs)
+    return render_template('edit_user.html', user=user, instructors=instructors, teams=teams, programs=programs, students=students)
+
+@app.route('/parent/children/<int:student_id>')
+@login_required
+def parent_child_evaluations(student_id):
+    if current_user.user_type != 'parent':
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    student = User.query.filter_by(id=student_id, user_type='student').first_or_404()
+    if student not in current_user.children:
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+    evaluations = Evaluation.query.filter_by(student_id=student.id).order_by(Evaluation.created_at.desc()).all()
+    return render_template('parent_child_evaluations.html', student=student, evaluations=evaluations)
 
 @app.route('/admin/view_student_evaluations/<int:student_id>')
 @login_required
@@ -1260,6 +1344,10 @@ def view_evaluation(evaluation_id):
     evaluation = Evaluation.query.get_or_404(evaluation_id)
     
     if current_user.user_type == 'student' and evaluation.student_id != current_user.id:
+        flash('Access denied', 'error')
+        return redirect(url_for('dashboard'))
+
+    if current_user.user_type == 'parent' and evaluation.student not in current_user.children:
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
     

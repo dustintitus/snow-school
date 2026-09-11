@@ -1,13 +1,13 @@
 import os
 import unittest
-from datetime import date
+from datetime import date, datetime
 
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 os.environ['SECRET_KEY'] = 'test-secret-key'
 os.environ['FLASK_ENV'] = 'production'
 
-from app import app, build_admin_dashboard, seed_demo_accounts, seed_demo_operations, seed_horseshoe_catalogue, seed_step_rip_curriculum
-from models import db, AppSetting, Attendance, ClassSession, CurriculumLevel, CurriculumSkill, Enrollment, Program, ProgramProfile, Team, User
+from app import app, build_admin_dashboard, seed_demo_accounts, seed_demo_parent, seed_demo_operations, seed_horseshoe_catalogue, seed_step_rip_curriculum
+from models import db, AppSetting, Attendance, ClassSession, CurriculumLevel, CurriculumSkill, Enrollment, Evaluation, ParentStudent, Program, ProgramProfile, Team, User
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -133,6 +133,53 @@ class WorkflowTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.headers['Location'].endswith('/dashboard'))
 
+    def test_parent_can_sign_in_with_email_and_view_linked_child_history(self):
+        with app.app_context():
+            parent = User(username='riley-parent', email='parent@example.com', password_hash=generate_password_hash('password123'), full_name='Riley Parent', user_type='parent')
+            db.session.add(parent)
+            db.session.flush()
+            db.session.add(ParentStudent(parent_id=parent.id, student_id=self.student_id))
+            db.session.add(Evaluation(student_id=self.student_id, instructor_id=self.instructor_id, sport_type='skier', level=1, skills_score=8, attitude_score=9, performance_score=8, comments='A confident first season.', created_at=datetime(2026, 2, 7, 12, 0)))
+            db.session.commit()
+
+        response = self.client.post('/login', data={'username': 'PARENT@EXAMPLE.COM', 'password': 'password123'})
+        self.assertEqual(response.status_code, 302)
+        dashboard = self.client.get('/dashboard')
+        self.assertEqual(dashboard.status_code, 200)
+        self.assertIn("Your children’s progress".encode(), dashboard.data)
+        self.assertIn(b'Riley Rider', dashboard.data)
+        history = self.client.get(f'/parent/children/{self.student_id}')
+        self.assertEqual(history.status_code, 200)
+        self.assertIn(b'A confident first season.', self.client.get('/evaluations/1').data)
+
+    def test_parent_cannot_view_an_unlinked_child_or_evaluation(self):
+        with app.app_context():
+            parent = User(username='unlinked-parent', email='unlinked@example.com', password_hash=generate_password_hash('password123'), full_name='Unlinked Parent', user_type='parent')
+            db.session.add(parent)
+            db.session.flush()
+            parent_id = parent.id
+            evaluation = Evaluation(student_id=self.student_id, instructor_id=self.instructor_id, sport_type='skier', level=1, skills_score=8, attitude_score=9, performance_score=8, created_at=datetime(2026, 2, 7, 12, 0))
+            db.session.add(evaluation)
+            db.session.commit()
+            evaluation_id = evaluation.id
+        self.login_as(parent_id)
+        self.assertEqual(self.client.get(f'/parent/children/{self.student_id}').status_code, 302)
+        self.assertEqual(self.client.get(f'/evaluations/{evaluation_id}').status_code, 302)
+
+    def test_admin_can_create_parent_and_link_multiple_children(self):
+        with app.app_context():
+            admin = User(username='family-admin', email='family-admin@example.com', password_hash=generate_password_hash('password123'), full_name='Family Admin', user_type='admin')
+            sibling = User(username='sibling', email='sibling@example.com', password_hash=generate_password_hash('password123'), full_name='Sibling Rider', user_type='student', team_id=self.team_id)
+            db.session.add_all([admin, sibling])
+            db.session.commit()
+            admin_id, sibling_id = admin.id, sibling.id
+        self.login_as(admin_id)
+        response = self.client.post('/register', data={'username': 'family', 'email': 'family@example.com', 'password': 'password123', 'full_name': 'Rider Family', 'user_type': 'parent', 'student_ids': [str(self.student_id), str(sibling_id)]})
+        self.assertEqual(response.status_code, 302)
+        with app.app_context():
+            parent = User.query.filter_by(username='family').one()
+            self.assertEqual({child.id for child in parent.children}, {self.student_id, sibling_id})
+
     def test_versioned_demo_seed_keeps_configured_passwords_in_sync(self):
         with app.app_context():
             passwords = {'admin': 'new-admin', 'instructor1': 'new-coach', 'student1': 'new-student'}
@@ -146,6 +193,18 @@ class WorkflowTestCase(unittest.TestCase):
             self.assertTrue(seed_demo_accounts('test-v1', passwords))
             self.assertTrue(check_password_hash(coach.password_hash, 'new-coach'))
             self.assertIsNotNone(db.session.get(AppSetting, 'demo-account-seed:test-v1'))
+
+    def test_versioned_parent_seed_links_only_the_demo_student(self):
+        with app.app_context():
+            demo_student = db.session.get(User, self.student_id)
+            demo_student.username = 'student1'
+            db.session.commit()
+            self.assertTrue(seed_demo_parent('parent-v1', 'family-password'))
+            self.assertFalse(seed_demo_parent('parent-v1', 'family-password'))
+            parent = User.query.filter_by(username='parent.demo').one()
+            self.assertEqual(parent.user_type, 'parent')
+            self.assertTrue(check_password_hash(parent.password_hash, 'family-password'))
+            self.assertEqual([child.id for child in parent.children], [self.student_id])
 
     def test_horseshoe_catalogue_seed_is_idempotent_and_backfills_enrollment(self):
         with app.app_context():

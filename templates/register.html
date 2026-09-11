@@ -28,9 +28,17 @@
                 <label for="user_type">User Type</label>
                 <select id="user_type" name="user_type" required onchange="toggleStudentFields()">
                     <option value="student">Student</option>
+                    <option value="parent">Parent / guardian</option>
                     <option value="instructor">Instructor</option>
                     <option value="admin">Admin</option>
                 </select>
+            </div>
+            <div class="form-group" id="children_group" style="display: none;">
+                <label>Children this parent can view</label>
+                <div class="parent-child-picker">
+                    {% for student in students %}<label class="checkbox-label"><input type="checkbox" name="student_ids" value="{{ student.id }}"><span>{{ student.full_name }}{% if student.team %}<small>{{ student.team.name }}</small>{% endif %}</span></label>{% endfor %}
+                </div>
+                <small>Only selected children and their evaluations will be visible.</small>
             </div>
             <input type="hidden" id="instructor_id" name="instructor_id" value="">
             <div class="form-group" id="team_group" style="display: none;">
@@ -79,6 +87,7 @@ function toggleStudentFields() {
     const userType = document.getElementById('user_type').value;
     const teamGroup = document.getElementById('team_group');
     const sportGroup = document.getElementById('sport_group');
+    const childrenGroup = document.getElementById('children_group');
     if (userType === 'student') {
         teamGroup.style.display = 'block';
         sportGroup.style.display = 'block';
@@ -86,6 +95,7 @@ function toggleStudentFields() {
         teamGroup.style.display = 'none';
         sportGroup.style.display = 'none';
     }
+    childrenGroup.style.display = userType === 'parent' ? 'block' : 'none';
 }
 
 function updateInstructorFromTeam() {

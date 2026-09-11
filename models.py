@@ -117,9 +117,25 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     
     instructor = db.relationship('User', remote_side=[id], foreign_keys=[instructor_id])
+    children = db.relationship(
+        'User',
+        secondary='parent_student',
+        primaryjoin='User.id == ParentStudent.parent_id',
+        secondaryjoin='User.id == ParentStudent.student_id',
+        backref=db.backref('parents', lazy='select'),
+        lazy='select',
+    )
     
     def __repr__(self):
         return f'<User {self.username}>'
+
+class ParentStudent(db.Model):
+    """Explicit, auditable access link between a parent account and a student."""
+    __table_args__ = (db.UniqueConstraint('parent_id', 'student_id', name='uq_parent_student'),)
+    id = db.Column(db.Integer, primary_key=True)
+    parent_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 class Attendance(db.Model):
     __table_args__ = (db.UniqueConstraint('student_id', 'team_id', 'session_date', name='uq_attendance_student_team_date'),)

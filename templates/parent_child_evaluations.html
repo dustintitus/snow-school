@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ student.full_name }} · Evaluations{% endblock %}
+{% block content %}
+<div class="dashboard-header"><div><p class="eyebrow">Evaluation history</p><h2>{{ student.full_name }}</h2><p class="dashboard-lede">Every completed evaluation, newest first.</p></div><a href="{{ url_for('dashboard') }}" class="btn btn-secondary">All children</a></div>
+{% if evaluations %}<div class="evaluation-list">
+    {% for evaluation in evaluations %}<article class="evaluation-history-row">
+        <div class="evaluation-history-date"><strong>{{ evaluation.created_at.strftime('%b %d') }}</strong><small>{{ evaluation.created_at.strftime('%Y') }}</small></div>
+        <div class="evaluation-history-name"><strong>{% if evaluation.sport_type == 'skier' %}STEP{% elif evaluation.sport_type == 'snowboarder' %}RIP{% elif evaluation.sport_type == 'snow_stars' %}Snow Stars{% elif evaluation.sport_type == 'hv_skier' %}Skiing{% else %}Snowboarding{% endif %} · Level {{ evaluation.level }}</strong><small>Coach {{ evaluation.instructor.full_name }}</small></div>
+        <div class="evaluation-history-score">{{ evaluation.average_score }}/10</div>
+        <a class="btn btn-primary btn-sm" href="{{ url_for('view_evaluation', evaluation_id=evaluation.id) }}">Open evaluation</a>
+    </article>{% endfor %}
+</div>{% else %}<div class="card no-records"><h3>No evaluations yet</h3><p>Completed evaluations will appear here automatically.</p></div>{% endif %}
+{% endblock %}

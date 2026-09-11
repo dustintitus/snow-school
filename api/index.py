@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 os.environ['FLASK_ENV'] = 'production'
 
 # Import the Flask app
-from app import app, db, seed_demo_accounts, seed_demo_operations, seed_horseshoe_catalogue, seed_horseshoe_showcase, seed_step_rip_curriculum
+from app import app, db, seed_demo_accounts, seed_demo_parent, seed_demo_operations, seed_horseshoe_catalogue, seed_horseshoe_showcase, seed_step_rip_curriculum
 
 # Initialize database on cold start (production-safe)
 def initialize_database():
@@ -32,6 +32,10 @@ def initialize_database():
                     'instructor1': os.environ.get('DEMO_INSTRUCTOR_PASSWORD'),
                     'student1': os.environ.get('DEMO_STUDENT_PASSWORD'),
                 },
+            )
+            seed_demo_parent(
+                os.environ.get('DEMO_PARENT_SEED_VERSION'),
+                os.environ.get('DEMO_PARENT_PASSWORD'),
             )
             print("✓ Database tables created/verified without altering records")
             return True
