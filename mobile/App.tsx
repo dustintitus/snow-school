@@ -177,6 +177,8 @@ export default function App() {
         thirdPartyCookiesEnabled={false}
         allowsBackForwardNavigationGestures
         setSupportMultipleWindows={false}
+        allowsInlineMediaPlayback
+        mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
         startInLoadingState
         onShouldStartLoadWithRequest={(request) => {
           if (request.url === 'about:blank') return true;

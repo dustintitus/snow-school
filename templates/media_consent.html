@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Media acknowledgment | Snow School{% endblock %}
+{% block content %}
+<div class="consent-shell">
+    <section class="consent-intro">
+        <p class="eyebrow">First sign-in · Family preference</p>
+        <h2>Participant media acknowledgment</h2>
+        <p>Before entering the family portal, please record a choice for each child linked to your account.</p>
+    </section>
+    <form method="POST" class="card consent-card">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <div class="consent-summary">
+            <h3>How participant media works</h3>
+            <ul>
+                <li>Authorized instructors may capture progress photos directly inside the Snow School app.</li>
+                <li>Media is stored in private app storage and is visible only to authorized Snow School staff and linked family accounts.</li>
+                <li>It will not be posted publicly or used for advertising or social media through this acknowledgment.</li>
+                <li>In-app capture does not save the image to the instructor’s personal camera roll.</li>
+                <li>You can change your choice later or ask Snow School administration to remove stored media.</li>
+            </ul>
+        </div>
+        {% if children %}<div class="consent-children">
+            {% for child in children %}{% set saved = existing.get(child.id) %}
+            <fieldset class="consent-child">
+                <legend>{{ child.full_name }}</legend>
+                <p>I confirm that I am authorized to make this choice for {{ child.full_name }}.</p>
+                <label class="consent-choice"><input type="radio" name="consent_{{ child.id }}" value="accepted" required {% if saved and saved.status == 'accepted' %}checked{% endif %}><span><strong>I consent</strong><small>Allow private in-app progress photos.</small></span></label>
+                <label class="consent-choice"><input type="radio" name="consent_{{ child.id }}" value="declined" required {% if saved and saved.status == 'declined' %}checked{% endif %}><span><strong>I do not consent</strong><small>Do not capture or store media for this participant.</small></span></label>
+            </fieldset>{% endfor %}
+        </div>{% else %}<p class="empty-state">No children are linked to this account. You can continue to the family dashboard.</p>{% endif %}
+        <button type="submit" class="btn btn-primary btn-block">Save and continue</button>
+    </form>
+</div>
+{% endblock %}

@@ -137,6 +137,31 @@ class ParentStudent(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
+class MediaConsent(db.Model):
+    """Versioned parent decision for participant photo capture and private storage."""
+    __table_args__ = (db.UniqueConstraint('parent_id', 'student_id', 'version', name='uq_media_consent_parent_student_version'),)
+    id = db.Column(db.Integer, primary_key=True)
+    parent_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    version = db.Column(db.String(30), nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # accepted or declined
+    acknowledged_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+
+class ParticipantMedia(db.Model):
+    """Metadata for a participant image held in authenticated private blob storage."""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    blob_url = db.Column(db.String(700), nullable=False)
+    blob_pathname = db.Column(db.String(500), nullable=False)
+    content_type = db.Column(db.String(80), nullable=False)
+    byte_size = db.Column(db.Integer, nullable=False)
+    caption = db.Column(db.String(240), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+
+    student = db.relationship('User', foreign_keys=[student_id], backref='participant_media')
+    uploader = db.relationship('User', foreign_keys=[uploader_id])
+
 class Attendance(db.Model):
     __table_args__ = (db.UniqueConstraint('student_id', 'team_id', 'session_date', name='uq_attendance_student_team_date'),)
     id = db.Column(db.Integer, primary_key=True)

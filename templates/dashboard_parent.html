@@ -3,14 +3,14 @@
 {% block content %}
 <section class="parent-hero">
     <div><p class="eyebrow">Family portal</p><h2>Your children’s progress</h2><p>Pick up the latest evaluation and revisit every evaluation saved for your family.</p></div>
-    <div><strong>{{ evaluation_count }}</strong><br><small>Total evaluations</small></div>
+    <div><strong>{{ evaluation_count }}</strong><br><small>Total evaluations</small><br><a href="{{ url_for('media_consent') }}" class="consent-manage-link">Media preferences</a></div>
 </section>
 {% if children %}<div class="family-grid">
     {% for child in children %}{% set latest = child.evaluations_received|sort(attribute='created_at', reverse=true)|first %}
     <article class="family-card">
         <p class="eyebrow">{{ child.team.program.name if child.team else 'Snow School student' }}</p>
         <h3>{{ child.full_name }}</h3>
-        <p class="family-card-meta">{{ child.evaluations_received|length }} {{ 'evaluation' if child.evaluations_received|length == 1 else 'evaluations' }}{% if latest %} · Latest {{ latest.created_at.strftime('%b %d, %Y') }}{% endif %}</p>
+        <p class="family-card-meta">{{ child.evaluations_received|length }} {{ 'evaluation' if child.evaluations_received|length == 1 else 'evaluations' }}{% if latest %} · Latest {{ latest.created_at.strftime('%b %d, %Y') }}{% endif %}<br>Media: {{ 'consented' if consent_by_child.get(child.id) == 'accepted' else 'not permitted' }}</p>
         <a class="btn btn-primary" href="{{ url_for('parent_child_evaluations', student_id=child.id) }}">View evaluation history</a>
     </article>{% endfor %}
 </div>{% else %}<div class="card no-records"><h3>No children linked yet</h3><p>Please contact Snow School administration to connect your child to this account.</p></div>{% endif %}

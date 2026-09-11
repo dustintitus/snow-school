@@ -1,5 +1,8 @@
 import os
 import unittest
+from io import BytesIO
+from types import SimpleNamespace
+from unittest.mock import patch
 from datetime import date, datetime
 
 os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
@@ -7,7 +10,7 @@ os.environ['SECRET_KEY'] = 'test-secret-key'
 os.environ['FLASK_ENV'] = 'production'
 
 from app import app, build_admin_dashboard, seed_demo_accounts, seed_demo_parent, seed_demo_operations, seed_horseshoe_catalogue, seed_step_rip_curriculum
-from models import db, AppSetting, Attendance, ClassSession, CurriculumLevel, CurriculumSkill, Enrollment, Evaluation, ParentStudent, Program, ProgramProfile, Team, User
+from models import db, AppSetting, Attendance, ClassSession, CurriculumLevel, CurriculumSkill, Enrollment, Evaluation, MediaConsent, ParentStudent, ParticipantMedia, Program, ProgramProfile, Team, User
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -144,6 +147,11 @@ class WorkflowTestCase(unittest.TestCase):
 
         response = self.client.post('/login', data={'username': 'PARENT@EXAMPLE.COM', 'password': 'password123'})
         self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.headers['Location'].endswith('/parent/media-consent'))
+        consent_page = self.client.get('/parent/media-consent')
+        self.assertIn(b'Participant media acknowledgment', consent_page.data)
+        consent = self.client.post('/parent/media-consent', data={f'consent_{self.student_id}': 'accepted'})
+        self.assertEqual(consent.status_code, 302)
         dashboard = self.client.get('/dashboard')
         self.assertEqual(dashboard.status_code, 200)
         self.assertIn("Your children’s progress".encode(), dashboard.data)
@@ -151,6 +159,51 @@ class WorkflowTestCase(unittest.TestCase):
         history = self.client.get(f'/parent/children/{self.student_id}')
         self.assertEqual(history.status_code, 200)
         self.assertIn(b'A confident first season.', self.client.get('/evaluations/1').data)
+
+    def test_parent_must_record_a_choice_before_family_records_are_available(self):
+        with app.app_context():
+            parent = User(username='consent-parent', email='consent@example.com', password_hash=generate_password_hash('password123'), full_name='Consent Parent', user_type='parent')
+            db.session.add(parent)
+            db.session.flush()
+            db.session.add(ParentStudent(parent_id=parent.id, student_id=self.student_id))
+            db.session.commit()
+            parent_id = parent.id
+        self.login_as(parent_id)
+        dashboard = self.client.get('/dashboard')
+        self.assertEqual(dashboard.status_code, 302)
+        self.assertTrue(dashboard.headers['Location'].endswith('/parent/media-consent'))
+        invalid = self.client.post('/parent/media-consent', data={})
+        self.assertEqual(invalid.status_code, 200)
+        declined = self.client.post('/parent/media-consent', data={f'consent_{self.student_id}': 'declined'})
+        self.assertEqual(declined.status_code, 302)
+        self.assertEqual(self.client.get('/dashboard').status_code, 200)
+
+    def test_instructor_camera_upload_requires_consent_and_stores_private_metadata(self):
+        with app.app_context():
+            parent = User(username='camera-parent', email='camera@example.com', password_hash=generate_password_hash('password123'), full_name='Camera Parent', user_type='parent')
+            db.session.add(parent)
+            db.session.flush()
+            db.session.add(ParentStudent(parent_id=parent.id, student_id=self.student_id))
+            db.session.commit()
+            parent_id = parent.id
+        self.login_as(self.instructor_id)
+        jpeg = b'\xff\xd8\xff' + b'camera-image'
+        blocked = self.client.post(f'/participants/{self.student_id}/media', data={'media': (BytesIO(jpeg), 'capture.jpg')}, content_type='multipart/form-data')
+        self.assertEqual(blocked.status_code, 403)
+        self.login_as(parent_id)
+        self.client.post('/parent/media-consent', data={f'consent_{self.student_id}': 'accepted'})
+        self.login_as(self.instructor_id)
+        fake_blob = SimpleNamespace(url='https://private.example/capture.jpg', pathname='participants/3/capture.jpg')
+        with patch('app.BlobClient') as blob_client:
+            blob_client.return_value.put.return_value = fake_blob
+            uploaded = self.client.post(f'/participants/{self.student_id}/media', data={'media': (BytesIO(jpeg), 'capture.jpg'), 'caption': 'Parallel turns'}, content_type='multipart/form-data')
+        self.assertEqual(uploaded.status_code, 200)
+        with app.app_context():
+            media = ParticipantMedia.query.one()
+            self.assertEqual(media.caption, 'Parallel turns')
+            self.assertTrue(media.blob_pathname.startswith('participants/'))
+        team_page = self.client.get(f'/teams/{self.team_id}/session')
+        self.assertIn(b'Camera', team_page.data)
 
     def test_parent_cannot_view_an_unlinked_child_or_evaluation(self):
         with app.app_context():

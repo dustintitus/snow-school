@@ -10,7 +10,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.dustintitus.snowschoolcoach",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Snow School uses the camera to capture participant progress photos directly into private school storage. Photos are not saved to your camera roll."
       }
     },
     "android": {
@@ -20,7 +21,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA"]
     },
     "web": {
       "favicon": "./assets/favicon.png"

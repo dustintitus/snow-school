@@ -1,10 +1,11 @@
 import os
 import secrets
-from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort, make_response, jsonify
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, AppSetting, User, ParentStudent, Evaluation, Program, ProgramProfile, Enrollment, CurriculumLevel, CurriculumSkill, Team, Attendance, ClassSession
-from datetime import datetime, date, timedelta
+from models import db, AppSetting, User, ParentStudent, MediaConsent, ParticipantMedia, Evaluation, Program, ProgramProfile, Enrollment, CurriculumLevel, CurriculumSkill, Team, Attendance, ClassSession
+from vercel.blob import BlobClient
+from datetime import UTC, datetime, date, timedelta
 from config import config
 import logging
 from urllib.parse import urlparse
@@ -79,6 +80,48 @@ def instructor_can_access_student(student):
 
 SESSION_STATUSES = ('not_started', 'checked_in', 'on_hill', 'break', 'completed')
 CURRENT_SEASON = os.environ.get('SNOW_SCHOOL_SEASON', '2026-2027')
+MEDIA_CONSENT_VERSION = '2026-09-v1'
+MAX_CAPTURE_BYTES = 3 * 1024 * 1024
+ALLOWED_CAPTURE_TYPES = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp'}
+
+def parent_missing_media_consent(parent):
+    acknowledged_ids = {
+        row.student_id for row in MediaConsent.query.filter_by(parent_id=parent.id, version=MEDIA_CONSENT_VERSION).all()
+    }
+    return [child for child in parent.children if child.id not in acknowledged_ids]
+
+def student_has_media_consent(student):
+    """Require every linked guardian to affirm the current policy before capture."""
+    parent_ids = {parent.id for parent in student.parents if parent.user_type == 'parent'}
+    if not parent_ids:
+        return False
+    rows = MediaConsent.query.filter(
+        MediaConsent.student_id == student.id,
+        MediaConsent.parent_id.in_(parent_ids),
+        MediaConsent.version == MEDIA_CONSENT_VERSION,
+    ).all()
+    return len(rows) == len(parent_ids) and all(row.status == 'accepted' for row in rows)
+
+def can_access_participant(student):
+    if is_admin():
+        return True
+    if current_user.user_type == 'student':
+        return current_user.id == student.id
+    if current_user.user_type == 'parent':
+        return student in current_user.children
+    if current_user.user_type == 'instructor':
+        return instructor_can_access_student(student)
+    return False
+
+@app.before_request
+def require_parent_media_acknowledgment():
+    if not current_user.is_authenticated or current_user.user_type != 'parent':
+        return None
+    if request.endpoint in {'media_consent', 'logout', 'static'}:
+        return None
+    if parent_missing_media_consent(current_user):
+        return redirect(url_for('media_consent'))
+    return None
 
 def parse_session_date(raw_value, fallback=None):
     """Parse an ISO date used by coach tools."""
@@ -888,6 +931,8 @@ def login():
                 if password_valid:
                     login_user(user)
                     flash('Login successful!', 'success')
+                    if user.user_type == 'parent' and parent_missing_media_consent(user):
+                        return redirect(url_for('media_consent'))
                     return redirect(next_url or url_for('dashboard'))
                 else:
                     flash('Invalid username or password', 'error')
@@ -906,6 +951,37 @@ def logout():
     logout_user()
     flash('Logged out successfully', 'info')
     return redirect(url_for('index'))
+
+@app.route('/parent/media-consent', methods=['GET', 'POST'])
+@login_required
+def media_consent():
+    if current_user.user_type != 'parent':
+        return redirect(url_for('dashboard'))
+    children = sorted(current_user.children, key=lambda child: child.full_name.lower())
+    existing = {
+        row.student_id: row for row in MediaConsent.query.filter_by(
+            parent_id=current_user.id, version=MEDIA_CONSENT_VERSION
+        ).all()
+    }
+    if request.method == 'POST':
+        decisions = {}
+        for child in children:
+            decision = request.form.get(f'consent_{child.id}')
+            if decision not in {'accepted', 'declined'}:
+                flash(f'Please choose an option for {child.full_name}', 'error')
+                return render_template('media_consent.html', children=children, existing=existing)
+            decisions[child.id] = decision
+        for child in children:
+            record = existing.get(child.id) or MediaConsent(
+                parent_id=current_user.id, student_id=child.id, version=MEDIA_CONSENT_VERSION
+            )
+            record.status = decisions[child.id]
+            record.acknowledged_at = datetime.now(UTC)
+            db.session.add(record)
+        db.session.commit()
+        flash('Your media preferences have been saved', 'success')
+        return redirect(url_for('dashboard'))
+    return render_template('media_consent.html', children=children, existing=existing)
 
 @app.route('/dashboard')
 @login_required
@@ -944,7 +1020,12 @@ def dashboard():
     elif user_type == 'parent':
         children = sorted(current_user.children, key=lambda child: child.full_name.lower())
         evaluation_count = sum(len(child.evaluations_received) for child in children)
-        return render_template('dashboard_parent.html', children=children, evaluation_count=evaluation_count)
+        consent_by_child = {
+            row.student_id: row.status for row in MediaConsent.query.filter_by(
+                parent_id=current_user.id, version=MEDIA_CONSENT_VERSION
+            ).all()
+        }
+        return render_template('dashboard_parent.html', children=children, evaluation_count=evaluation_count, consent_by_child=consent_by_child)
     else:
         evaluations = Evaluation.query.filter_by(student_id=current_user.id).order_by(Evaluation.level).all()
         return render_template('dashboard_student.html', evaluations=evaluations)
@@ -1157,7 +1238,8 @@ def parent_child_evaluations(student_id):
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
     evaluations = Evaluation.query.filter_by(student_id=student.id).order_by(Evaluation.created_at.desc()).all()
-    return render_template('parent_child_evaluations.html', student=student, evaluations=evaluations)
+    media_items = ParticipantMedia.query.filter_by(student_id=student.id).order_by(ParticipantMedia.created_at.desc()).all()
+    return render_template('parent_child_evaluations.html', student=student, evaluations=evaluations, media_items=media_items)
 
 @app.route('/admin/view_student_evaluations/<int:student_id>')
 @login_required
@@ -1565,17 +1647,92 @@ def team_session(team_id):
     }
     latest_evaluations = {}
     completed_levels = {}
+    media_consent = {}
+    latest_media = {}
     for student in students:
         latest_evaluations[student.id] = Evaluation.query.filter_by(student_id=student.id).order_by(Evaluation.created_at.desc()).first()
         completed_levels[student.id] = Evaluation.query.filter_by(student_id=student.id).count()
+        media_consent[student.id] = student_has_media_consent(student)
+        latest_media[student.id] = ParticipantMedia.query.filter_by(student_id=student.id).order_by(ParticipantMedia.created_at.desc()).first()
 
     class_session = ClassSession.query.filter_by(team_id=team_id, session_date=session_date).first()
 
     return render_template(
         'team_session.html', team=team, students=students, session_date=session_date,
         attendance=attendance, latest_evaluations=latest_evaluations, completed_levels=completed_levels,
+        media_consent=media_consent, latest_media=latest_media,
         class_session=class_session, session_statuses=SESSION_STATUSES
     )
+
+@app.route('/participants/<int:student_id>/media', methods=['POST'])
+@login_required
+def upload_participant_media(student_id):
+    student = User.query.filter_by(id=student_id, user_type='student').first_or_404()
+    if current_user.user_type != 'instructor' or not instructor_can_access_student(student):
+        return jsonify({'error': 'Access denied'}), 403
+    if not student_has_media_consent(student):
+        return jsonify({'error': 'Current parent media consent is required'}), 403
+
+    capture = request.files.get('media')
+    if capture is None or not capture.filename:
+        return jsonify({'error': 'No camera image received'}), 400
+    content_type = capture.mimetype.lower()
+    if content_type not in ALLOWED_CAPTURE_TYPES:
+        return jsonify({'error': 'Use a JPEG, PNG, or WebP image'}), 400
+    image_bytes = capture.read(MAX_CAPTURE_BYTES + 1)
+    if not image_bytes or len(image_bytes) > MAX_CAPTURE_BYTES:
+        return jsonify({'error': 'Image must be smaller than 3 MB'}), 400
+    signatures = {
+        'image/jpeg': image_bytes.startswith(b'\xff\xd8\xff'),
+        'image/png': image_bytes.startswith(b'\x89PNG\r\n\x1a\n'),
+        'image/webp': image_bytes.startswith(b'RIFF') and image_bytes[8:12] == b'WEBP',
+    }
+    if not signatures[content_type]:
+        return jsonify({'error': 'The uploaded file is not a valid image'}), 400
+
+    filename = f'participants/{student.id}/{date.today().isoformat()}-{secrets.token_hex(8)}{ALLOWED_CAPTURE_TYPES[content_type]}'
+    try:
+        blob = BlobClient().put(
+            filename, image_bytes, access='private', content_type=content_type,
+            cache_control_max_age=60,
+        )
+        media = ParticipantMedia(
+            student_id=student.id,
+            uploader_id=current_user.id,
+            blob_url=blob.url,
+            blob_pathname=blob.pathname,
+            content_type=content_type,
+            byte_size=len(image_bytes),
+            caption=request.form.get('caption', '').strip()[:240] or None,
+            created_at=datetime.now(UTC),
+        )
+        db.session.add(media)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        app.logger.exception('Participant media upload failed')
+        return jsonify({'error': 'The image could not be saved. Please try again.'}), 503
+    return jsonify({'ok': True, 'media_id': media.id, 'view_url': url_for('view_participant_media', media_id=media.id)})
+
+@app.route('/participant-media/<int:media_id>')
+@login_required
+def view_participant_media(media_id):
+    media = ParticipantMedia.query.get_or_404(media_id)
+    if not can_access_participant(media.student):
+        abort(403)
+    try:
+        blob = BlobClient().get(media.blob_url, access='private', use_cache=True)
+    except Exception:
+        app.logger.exception('Participant media read failed')
+        abort(503)
+    if blob is None or blob.status_code != 200:
+        abort(404)
+    response = make_response(blob.content)
+    response.headers['Content-Type'] = media.content_type
+    response.headers['Content-Length'] = str(media.byte_size)
+    response.headers['Cache-Control'] = 'private, no-store'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 @app.route('/teams/<int:team_id>/session/status', methods=['POST'])
 @login_required
