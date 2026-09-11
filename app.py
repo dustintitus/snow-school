@@ -764,28 +764,36 @@ def init_db():
         seed_horseshoe_showcase()
 
 def seed_demo_accounts(seed_version, passwords):
-    """Apply an explicitly versioned demo-account reset exactly once."""
+    """Keep configured demo credentials in sync with the production accounts."""
     if not seed_version or set(passwords) != {'admin', 'instructor1', 'student1'} or not all(passwords.values()):
         return False
 
     setting_key = f'demo-account-seed:{seed_version}'
-    if db.session.get(AppSetting, setting_key):
-        return False
-
     account_specs = (
         ('admin', 'admin@snowschool.com', 'Administrator', 'admin'),
         ('instructor1', 'instructor@snowschool.com', 'Demo Instructor', 'instructor'),
         ('student1', 'student@snowschool.com', 'Demo Student', 'student'),
     )
+    changed = False
     for username, email, full_name, user_type in account_specs:
         user = User.query.filter_by(username=username).first()
         if user is None:
             user = User(username=username, email=email, full_name=full_name, user_type=user_type)
             db.session.add(user)
-        user.password_hash = generate_password_hash(passwords[username], method='pbkdf2:sha256')
-        user.user_type = user_type
+            changed = True
+        if not user.password_hash or not check_password_hash(user.password_hash, passwords[username]):
+            user.password_hash = generate_password_hash(passwords[username], method='pbkdf2:sha256')
+            changed = True
+        if user.user_type != user_type:
+            user.user_type = user_type
+            changed = True
 
-    db.session.add(AppSetting(key=setting_key, value='applied'))
+    setting = db.session.get(AppSetting, setting_key)
+    if setting is None:
+        db.session.add(AppSetting(key=setting_key, value='applied'))
+        changed = True
+    if not changed:
+        return False
     db.session.commit()
     return True
 

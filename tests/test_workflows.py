@@ -133,7 +133,7 @@ class WorkflowTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(response.headers['Location'].endswith('/dashboard'))
 
-    def test_versioned_demo_seed_resets_accounts_only_once(self):
+    def test_versioned_demo_seed_keeps_configured_passwords_in_sync(self):
         with app.app_context():
             passwords = {'admin': 'new-admin', 'instructor1': 'new-coach', 'student1': 'new-student'}
             self.assertTrue(seed_demo_accounts('test-v1', passwords))
@@ -141,6 +141,10 @@ class WorkflowTestCase(unittest.TestCase):
             self.assertTrue(check_password_hash(coach.password_hash, 'new-coach'))
             self.assertEqual(coach.user_type, 'instructor')
             self.assertFalse(seed_demo_accounts('test-v1', passwords))
+            coach.password_hash = generate_password_hash('stale-password')
+            db.session.commit()
+            self.assertTrue(seed_demo_accounts('test-v1', passwords))
+            self.assertTrue(check_password_hash(coach.password_hash, 'new-coach'))
             self.assertIsNotNone(db.session.get(AppSetting, 'demo-account-seed:test-v1'))
 
     def test_horseshoe_catalogue_seed_is_idempotent_and_backfills_enrollment(self):
