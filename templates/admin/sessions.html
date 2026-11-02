@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Sessions & attendance | Snow School{% endblock %}
+{% block content %}
+<div class="admin-page-heading"><p class="eyebrow">Operations</p><h2>Sessions & attendance</h2><p>Choose a class and date to open its attendance and teaching workspace.</p></div>
+<form method="GET" class="learning-filter"><label for="session-date">Session date<input id="session-date" name="date" type="date" value="{{ session_date.isoformat() }}" required></label><button class="btn btn-secondary" type="submit">Apply date</button></form>
+<p class="source-note">All classes are listed. Choose the date your class meets; this list does not confirm a scheduled lesson.</p>
+<div class="admin-destination-list">
+{% for team in teams %}<article><div><h3>{{ team.name }}</h3><p>{{ team.program.name }} · {{ team.instructor.full_name if team.instructor else 'Instructor unassigned' }}</p></div><a class="btn btn-secondary" href="{{ url_for('team_session', team_id=team.id, date=session_date.isoformat()) }}">Open session <span aria-hidden="true">→</span></a></article>
+{% else %}<p class="empty-state">No classes yet. <a href="{{ url_for('manage_teams') }}">Create a class or team</a> to begin.</p>{% endfor %}
+</div>
+{% endblock %}

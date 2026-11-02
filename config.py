@@ -5,6 +5,8 @@ class Config:
     """Base configuration"""
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Replace database connections closed while the serverless instance was idle.
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
     
     # Vercel-compatible database configuration
     # Use environment variable for production database

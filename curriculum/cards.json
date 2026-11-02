@@ -1,0 +1,498 @@
+{
+  "ski-1": {
+    "name": "Ski \u00b7 Red",
+    "sport": "ski",
+    "level": "Red",
+    "source": "Ski Report Cards, page 1",
+    "guidance_source": "Ski Instructor Cards, pages 1",
+    "guidance": "LEVEL 1 - RED\n\n\nI am just learning to ski. | Goal: Turn Both Ways and Stop\nMobility\n   Play Games with boots only\nI can put on, take off and carry my own skis.\n    Knows how bindings work\n    Knows how to clean off boots\n    Keeps fingers away from bindings\nI can walk with my skis on. (S&B)\n    Can walk on flat terrain in a square\n    Slide with one leg in the air\nI am able to side-step up the hill. (E)\n    Can side-step up gentle slope\n    Can roll edge over using ankle\n    Can keep skis parallel while stepping\nI am able to snowplow to a gentle stop.\n    Balanced position with hands out in front\n    Skis flat, no extreme edge\n    Can maintain snowplow position\nI am able to get up with minimal assistance.\n    Knows to turn skis across the hill\n    Can get up with skis on\nI can turn in both directions. (T&P)\n    Good turn shape\n    Skis turn together in a wedge\nI can stay balanced and show good body position at all times.\n    Hands in front\n    Head up where you are going\n    Knees bent/feel front of the boot\n    Not too far backwards or forwards",
+    "rows": [
+      {
+        "id": "ski-1-1",
+        "label": "Mobility: move in boots"
+      },
+      {
+        "id": "ski-1-2",
+        "label": "I can put on, take off & carry my skis"
+      },
+      {
+        "id": "ski-1-3",
+        "label": "I can walk with my skis on"
+      },
+      {
+        "id": "ski-1-4",
+        "label": "I am able to sidestep uphill"
+      },
+      {
+        "id": "ski-1-5",
+        "label": "I am able to snowplow to a gentle stop"
+      },
+      {
+        "id": "ski-1-6",
+        "label": "I am able to get up with minimal assistance"
+      },
+      {
+        "id": "ski-1-7",
+        "label": "I can turn in both directions"
+      },
+      {
+        "id": "ski-1-8",
+        "label": "I can stay balanced & show good body position"
+      }
+    ]
+  },
+  "ski-2": {
+    "name": "Ski \u00b7 Green",
+    "sport": "ski",
+    "level": "Green",
+    "source": "Ski Report Cards, page 2",
+    "guidance_source": "Ski Instructor Cards, pages 2",
+    "guidance": "LEVEL 2 - GREEN\n\n\nI can turn both ways and stop. | Goal: Control Speed Using Turn Shape\nI can turn around the features in the learning area.\n    Able to avoid obstacles (S&B)\n    Uses turn shape to control speed\n    Is in control\n    Starting to do hops in traverse between turns\n    Linking turns\n\nI am able to follow my instructor in a line. (P.C, T)\n    Can follow directions\n    Able to stop at will\n    Does not pass others\n\nI can stop using behind and below.\n    Slows down before getting close to the group\n    Leaves space between themselves and others\n\nI can control my speed and stop by turning uphill. (T&P)\n    Turning across the fall line and back up the hill\n    Could try hockey stops\nI can ski green runs comfortably & match my skis near end of the turn. (E)\n    Uses wide stance\n    Reinforce with lots of practice on comfortable terrain\n    Minimum terrain = maximum performance\n\nI am able to link turns on green slopes to control my speed.\n    Speed is controlled by turn shape, not snowplow\n    Does not take up too much of the run\n\nI can get up on my own.\n    Skis are downhill from hips and pointed across the fall line\nI can stay balanced skiing over a bump.\n    Kids should not be getting air at this level\n    Have good form while adjusting to small bumps or rolls over flat terrain",
+    "rows": [
+      {
+        "id": "ski-2-1",
+        "label": "I can turn around features"
+      },
+      {
+        "id": "ski-2-2",
+        "label": "I am able to follow my instructor in a line"
+      },
+      {
+        "id": "ski-2-3",
+        "label": "I can stop using behind & below"
+      },
+      {
+        "id": "ski-2-4",
+        "label": "I can control my speed & stop by turning uphill"
+      },
+      {
+        "id": "ski-2-5",
+        "label": "I can ski green runs comfortably"
+      },
+      {
+        "id": "ski-2-6",
+        "label": "I am able to link turns on green runs to control my speed"
+      },
+      {
+        "id": "ski-2-7",
+        "label": "I can get up on my own"
+      }
+    ]
+  },
+  "ski-3": {
+    "name": "Ski \u00b7 Blue",
+    "sport": "ski",
+    "level": "Blue",
+    "source": "Ski Report Cards, page 3",
+    "guidance_source": "Ski Instructor Cards, pages 3, 4",
+    "guidance": "LEVEL 3 - BLUE\n\n\nI can control speed using turns on green terrains.\nGoal: Ski with control with a wide parallel stance with poles on blue runs.\n\nI can adapt my turn shape to control speed on varied terrain.\n    Can do a mixed radius run - 3 short, 3 long, 3 medium\n    Looks ahead - adjusts to pitch of slope and maintains speed\n    Round, shallow turns\n\nI can maintain an athletic stance while holding my poles in front.\n     Arms up, ahead of the body\n\nI am able to ski all green runs using wide-stance parallel turns. (P.C)\n    No stem to start the turn\n    Can adjust to different snow conditions\n    Minimum terrain = maximum speed\n    Well balanced body position - arms ahead, eyes up, knees bent\n\nI can skate on flat and gentle slopes. (S&B)\n    Play a game: Relay, Follow the Leader\n    Kick and glide\n    Use as a warm up any time\n\nI can side slip on both sides for 4 metres on groomed terrain. (E)\n    Slide at a constant speed\n    Slide with good balance\n    Can adjust edge angle with the ankle joint and lower leg\n    Skis remain parallel\n    Edge set to flat ski\n\nLEVEL 3 - BLUE\n\n\n\nI am able to do hockey stops on both sides. (E, T&P)\n    Can turn both skis without stemming at the start\n    Able to come to come to a complete stop\n    Adjusts lateral balance to avoid falls on inside\n    Able to stop on a straight line\n\n\nI can ski up a side bank and turn back down.\n    How to identify a safe side bank (begin with small banks)\n    Work on edge control to climb\n    Adjust to terrain changes\n    Look in travel direction\n    Turn head and shoulders\n\n\nI can ski blue runs with a parallel stance.\n    Very confident and consistent\n    Can adjust to different snow conditions\n    Reinforce through mileage on appropriate terrain\n\n\nI understand how to merge and who has the right of way.\n    Alpine responsibility code\n    Look uphill before merging\n\n\nREADY FOR DEVO PROGRAM",
+    "rows": [
+      {
+        "id": "ski-3-1",
+        "label": "I can adapt turn shape to control my speed"
+      },
+      {
+        "id": "ski-3-2",
+        "label": "I maintain an athletic stance while my poles are in front"
+      },
+      {
+        "id": "ski-3-3",
+        "label": "I am able to ski all green runs in wide parallel stance"
+      },
+      {
+        "id": "ski-3-4",
+        "label": "I can skate on flat gentle terrain"
+      },
+      {
+        "id": "ski-3-5",
+        "label": "I can sideslip both sides 4 meters on groomed runs"
+      },
+      {
+        "id": "ski-3-6",
+        "label": "I am able to do hockey stops on both sides"
+      },
+      {
+        "id": "ski-3-7",
+        "label": "I can ski up a side bank & back down"
+      },
+      {
+        "id": "ski-3-8",
+        "label": "I understand who has the right of way & how to merge"
+      }
+    ]
+  },
+  "ski-4": {
+    "name": "Ski \u00b7 Black",
+    "sport": "ski",
+    "level": "Black",
+    "source": "Ski Report Cards, page 4",
+    "guidance_source": "Ski Instructor Cards, pages 5, 6",
+    "guidance": "LEVEL 4 - BLACK\n\n\nI am able to ski parallel turns on blue runs while holding poles in front.\nGoal: Improve edging skills, pole plant and ski parallel on black runs in a\nvariety of snow conditions.\n\nI can make large curved turns on green terrain. (T&P)\n    Speed is appropriate\n    Aware of other skiers/riders on the hill\n\n\nI can maintain my balance and link parallel turns on blue runs in varied\nterrain. (S&B, P.C)\n    Adjusts balance and pressure as necessary for varied terrain\n    Adjusts turn shape as necessary for varied terrain\n\n\nI can make 15 fall-line short-radius turns on blue runs. (T&P, T)\n    Able to maintain a constant speed\n    Consistent pole plant\n    Link consistent turns - no stopping\n\n\nI am able to ski with round parallel turns on black runs.\n    Adapts turn size to suit terrain\n    Rounded, rhythmic turns\n    Show good body position\n\n\nI make solid pole plants with proper timing and coordination.\n    Wears pole strap properly\n    Knows where and when to plant the pole in different turns\n    Stating to keep the pole baskets continuously moving\n    Plants pole to initiate the turn and stabilize the upper body\n    Adjusts the position of pole plant in relation to steepness, terrain\n    and type of turn\n    Steep slope/short radius - plant further downhill in fall-line\n\nLEVEL 3 - BLACK\n\n\nI am comfortable with speed on groomed terrain.\n    Demonstrates control and awareness of others of the hill\n    Proper technique and body position is still shown\n    Tuck drills & short radius turns\n\n\nI can safely pick my own line down blue runs and choose a safe\nstopping location.\n    Able to read terrain and identify hazards\n    Speed is appropriate for terrain\n    Talk about hazards and when going fast is not ok\n\n\nI am able to carve turns on blue runs. (E).\n    Demonstrates edging at the fall line\n    Uses lower leg to obtain edge",
+    "rows": [
+      {
+        "id": "ski-4-1",
+        "label": "I can make large carved turns on green terrain"
+      },
+      {
+        "id": "ski-4-2",
+        "label": "I can maintain balance, link parallel turns on blue runs"
+      },
+      {
+        "id": "ski-4-3",
+        "label": "I can make 15 fall line short radius turns on blue runs"
+      },
+      {
+        "id": "ski-4-4",
+        "label": "I am able to ski round, parallel turns on black runs"
+      },
+      {
+        "id": "ski-4-5",
+        "label": "I make pole plants with proper timing & coordination"
+      },
+      {
+        "id": "ski-4-6",
+        "label": "I am comfortable with speed on groomed terrain"
+      },
+      {
+        "id": "ski-4-7",
+        "label": "I can pick my own line on blue runs & find a safe stop location"
+      },
+      {
+        "id": "ski-4-8",
+        "label": "I am able to carve turns on blue runs"
+      }
+    ]
+  },
+  "ski-5": {
+    "name": "Ski \u00b7 Double Black",
+    "sport": "ski",
+    "level": "Double Black",
+    "source": "Ski Report Cards, page 5",
+    "guidance_source": "Ski Instructor Cards, pages 7",
+    "guidance": "LEVEL 5 - DOUBLE BLACK\n\nI am able to ski strong parallel turns on black runs. I enjoy skiing difficult\nterrain and conditions.\nGoal: Improve edging, pressure control, timing and coordination in varied\nterrain and conditions\nI can perform short radius turns on black runs.\n    Edging occurs at or near the fall line\n    Consistent speed maintained > Speiss\n    Able to keep skis on the snow throughout the turn\nI am comfortable with speed on all black runs.\n    Control and awareness of other skiers/riders are demonstrated\n    at all times\n    Proper technique and body position is still shown\nI can carve on groomed runs and steeps.\n    Edging phase is consistently at or above the fall line\n    Maintain consistent speed\n    Able to adjust turn shape as terrain changes\nI can link a series of controlled switch turns on groomed green terrain.\n    Able to ski fluidly with little or no stopping\n    Balanced on outside ski\n    Looking over outside shoulder\n    Speed is appropriate\n    Do not take up too much of the run\nI am able to keep a consistent rhythm in short radius turns.\n    Turn size is appropriate\n    Well-timed pole plant\n    Able to complete their turns\nI am comfortable with higher speeds on all terrain and in varied snow\nconditions.\n    Adjusts balance and pressure\n    Adjusts turn shape and speed as necessary for varied terrain\n    Can choose a suitable line by looking ahead/planning",
+    "rows": [
+      {
+        "id": "ski-5-1",
+        "label": "I can perform short radius turns on black runs"
+      },
+      {
+        "id": "ski-5-2",
+        "label": "I am comfortable with speed on all black runs"
+      },
+      {
+        "id": "ski-5-3",
+        "label": "I can carve on groomed runs & steeps"
+      },
+      {
+        "id": "ski-5-4",
+        "label": "I can link a series of switch turns on groomed green runs"
+      },
+      {
+        "id": "ski-5-5",
+        "label": "I am able to keep a consistent rhythm in short-radius turns"
+      },
+      {
+        "id": "ski-5-6",
+        "label": "I am comfortable with higher speeds on all terrain & in varied snow conditions"
+      }
+    ]
+  },
+  "snowboard-1": {
+    "name": "Snowboard \u00b7 Red",
+    "sport": "snowboard",
+    "level": "Red",
+    "source": "Snowboarding Report Cards, page 1",
+    "guidance_source": "Snowboard Instructor Cards, pages 5",
+    "guidance": "LEVEL 1 - RED\n\n\nLearn to use equipment.\n    Knows parts of the board\n    Front, Back, Toe, Heel, Bindings\n    Attach front foot while standing\nLearn to move around on flat terrain.\nSkating\n    Eyes forward\n    Weight on front foot\n    Body oriented with length of board\n    Small steps\nDevelop balance while sliding.\nStraight Running\n    Small, gradual slope experiment with putting back foot on\n    the board & gliding\n    SR with toe and heel drag\nGas Pedal\n    Board across hill\n    Slightly increase toe or heel edge\n    Experiment with back foot against back binding\nDevelop confidence with both feet attached.\n    Attach back foot; try while standing\n    Practice sideslipping\nLearn to control speed.\n    Sideslip toe side\n    Sideslip heel side\nLearn to control direction.\n    Pendulum heel side\n    Pendulum toe side turn head to see direction of travel\n    Resist turning the body",
+    "rows": [
+      {
+        "id": "snowboard-1-1",
+        "label": "I know my equipment"
+      },
+      {
+        "id": "snowboard-1-2",
+        "label": "I can move around on flat terrain"
+      },
+      {
+        "id": "snowboard-1-3",
+        "label": "I have good balance while sliding"
+      },
+      {
+        "id": "snowboard-1-4",
+        "label": "I can slide with both feet attached"
+      },
+      {
+        "id": "snowboard-1-5",
+        "label": "I can control my speed, sideslip"
+      },
+      {
+        "id": "snowboard-1-6",
+        "label": "I can control my direction, pendulum"
+      }
+    ]
+  },
+  "snowboard-2": {
+    "name": "Snowboard \u00b7 Green",
+    "sport": "snowboard",
+    "level": "Green",
+    "source": "Snowboarding Report Cards, page 2",
+    "guidance_source": "Snowboard Instructor Cards, pages 6",
+    "guidance": "LEVEL 2 - GREEN\n\n\nPractice controlling speed and direction.\nPower Pendulum (Pivots)\n    Rotate hips and knees into fall line\n    Accentuate rotation of board towards fall line, creating an arced path\n    Reverse movement to rotate out of fall line to control speed\nGarland Exercise\n    Increase speed\n    Rotate in opposite direction\n    Turn Board Back Up Hill\n    \"Chicken Turns\"\nLearn to turn the snowboard.\n    Heelside turns with assistance\n    Toeside turns with assistance\n    Flex hips, knees and ankles\n    Maintain alignment in the upper body with feet\n    Weight centered over both feet and sideslip to control speed\nIncrease balance and stability.\n    Toeside and heelside turns without assistance\n    Link the turns with a gentle traverse between\n    Keep legs and ankle flexed after the fall line\n    Eyes forward in the direction of the new turn\nSafety on the Hill.\n    Look into uphill traffic\n    Lifts: Learn how to load (skate up)\n    Unload straight run with toe/heel drag\nLearn to control speed.\n    On steeper terrain, make smaller, rounder turns (increase pivot\n    movement)\n    Follow the leader\n    Sliding 180s & 360s\n    Tail presses on flat terrain",
+    "rows": [
+      {
+        "id": "snowboard-2-1",
+        "label": "I can control my speed & direction"
+      },
+      {
+        "id": "snowboard-2-2",
+        "label": "I can turn with assistance, heelside/toeside"
+      },
+      {
+        "id": "snowboard-2-3",
+        "label": "I can use balance & stability to link turns on a gentle slope"
+      },
+      {
+        "id": "snowboard-2-4",
+        "label": "I know hill safety: three points of alpine code"
+      },
+      {
+        "id": "snowboard-2-5",
+        "label": "I can control the speed with pivot movements on steeper terrain"
+      }
+    ]
+  },
+  "snowboard-3": {
+    "name": "Snowboard \u00b7 Blue",
+    "sport": "snowboard",
+    "level": "Blue",
+    "source": "Snowboarding Report Cards, page 3",
+    "guidance_source": "Snowboard Instructor Cards, pages 7, 8",
+    "guidance": "LEVEL 3 - BLUE\n\n\nDevelop balance and steering skills.\nMaintain a relaxed body position\n    Experiment with position and balance tactics\n    Focus on maintaining the relaxed position\n    Sliding 360s\n    Hopping in traverse\n    Mini-motorboat turns (alignment)\n    Use knees and feet to help make smaller turns\n    Lower body rotation and steering skills will decrease the size of turns\n    Pivot-related tactics will help\n    Headlight on knees\n    Garland/fall line pivot\n    Focus on using knees and feet to guide the board\n    Riding with restricted arms\n\n\nIncrease edge control.\nCarved Traverse/Pencil Lines\n    Pure edge/new sensation\n    Carve traverse on flats, low speed\n    Maintain equal weight over feet or slightly over back foot\n    Spraying snow to the sides of the run\n    Will use the edge earlier in the turn\n    Will help develop bend in the board and rounder turn shape\n\n\nI gain comfort at higher speeds.\nCan link medium-sized turns in varied terrain\n    Use skills of lower body rotation, steering\n    Make turn size corridor smaller than used to\n\nLEVEL 3 - BLUE\n\n\n\nI gain comfort at higher speeds.\nCan link medium-sized turns in varied terrain\n    Use skills of lower body rotation, steering\n    Make turn size corridor smaller than used to\n\n\nExperiment with switch riding.\nCan link switch turns on green terrain\n    Start with beginner turn but in switch position\n\n\nLearn new flatland tricks.\nCan perform a nose and tail press\n    Moving hips down for stability then back over tail or forward over\n    nose\n    Flat-based glide to presses in an edged traverse\nPop off both feet\n    Static hops to pop while moving\n    Understands alpine responsibility code - 3 points\n\n\n\n** can only have two learning (all other skills mastered)\nin order to pass and move to the next level",
+    "rows": [
+      {
+        "id": "snowboard-3-1",
+        "label": "I can maintain a relaxed body position"
+      },
+      {
+        "id": "snowboard-3-2",
+        "label": "I can carve traverse/pencil lines"
+      },
+      {
+        "id": "snowboard-3-3",
+        "label": "I can link medium-sized turns in varied terrain"
+      },
+      {
+        "id": "snowboard-3-4",
+        "label": "I can link switch turns on green terrain"
+      },
+      {
+        "id": "snowboard-3-5",
+        "label": "I can perform a nose & tail press"
+      },
+      {
+        "id": "snowboard-3-6",
+        "label": "I can ride the chair lift without assistance"
+      },
+      {
+        "id": "snowboard-3-7",
+        "label": "I know the alpine code"
+      }
+    ]
+  },
+  "snowboard-4": {
+    "name": "Snowboard \u00b7 Black",
+    "sport": "snowboard",
+    "level": "Black",
+    "source": "Snowboarding Report Cards, page 4",
+    "guidance_source": "Snowboard Instructor Cards, pages 9, 10",
+    "guidance": "LEVEL 4 - BLACK\n\n\nIncrease edge control.\nMaintains balance as the terrain gets steeper and speed increases\n    Position and balance tactics\n    Maintain a relaxed body\n    Sliding 360s\nShort radius turns on blue and black\n    Lower body rotation\n    Steering skills\n    Pivot and timing tactics\n    Headlight on knees\n    Spray the snow to trees\n    Sideslip to short radius turns\nCarved turns\n    Pencil lines on green terrain\n\n\nGain more comfort at higher speeds\nMaintains fluid movements at high speed while turning\n    Loose feeling in the body\n    Edging at the top of the turn/inverse traverse\nUses knees and feet to turn the board\n    Lower body pivot\n    Fish turns\nUses flex of the board to create energy/acceleration\n    Pump turns\n    Ollies\nUses rebound for performance\n    Load board in a turn allow to release - controlling the rebound and\n    directing them into the next turn\nLink pencil line carved turns at high speed\n    Moderately steep follow the leader to set appropriate turn shape to\n    control speed\n\nLEVEL 4 - BLACK\n\n\nExperiment with riding on bumpy terrain\nLinks turns at higher speed on blue or black\n   Reduce turning corridor\n   Follow the leader\n   Absorb bumps by flexing lower body\n   Keep board on snow\n\n\nGain confidence in advanced terrain\n   Can switch between sliding and carved turn\n   Can perform three flatland tricks\n   Expand the nose and tail press by adding rotation\n\n\nLearn about riding in icy or powder conditions\n   Can adjust body position in powder\n   Shift hips slightly over back foot\n   Pushing on the trail\n   Can relax edge angle on icy slope\n   Uses pivot movements to control speed\n   Lower body position",
+    "rows": [
+      {
+        "id": "snowboard-4-1",
+        "label": "I maintain balance on steep terrain with increased speed"
+      },
+      {
+        "id": "snowboard-4-2",
+        "label": "I can complete short radius turns on blue & black runs"
+      },
+      {
+        "id": "snowboard-4-3",
+        "label": "I can link turns at a higher speed on blue & black runs"
+      },
+      {
+        "id": "snowboard-4-4",
+        "label": "I maintain fluid movements at a high speed while turning"
+      },
+      {
+        "id": "snowboard-4-5",
+        "label": "I can switch between sliding & carved turns"
+      },
+      {
+        "id": "snowboard-4-6",
+        "label": "I can perform three flatland tricks"
+      },
+      {
+        "id": "snowboard-4-7",
+        "label": "I can ride in a relaxed position in powder"
+      },
+      {
+        "id": "snowboard-4-8",
+        "label": "I can relax edge angle on icy slopes"
+      }
+    ]
+  },
+  "rippers-1": {
+    "name": "Little Rippers \u00b7 Bronze",
+    "sport": "snowboard",
+    "level": "Bronze",
+    "source": "Little Rippers Progress Report, page 1",
+    "guidance_source": "Snowboarding Instructor Cards, pages 1, 2",
+    "guidance": "LITTLE RIPPERS - A BRONZE\n\n\n\nGoals\n    Learn to put boots on and take off\n    Learn to use the bindings\n    Get used to walking in boots\n    Learn how to stand on the board and balance\n\n\nMobility: Technical Skills\n    Help students put boots on\n    Tighter or looser?\n    Walking: use relays or obstacle\n    Running: Freeze tag, follow the leader\n\n\nEquipment: Introduce the Board and Parts\nSimon Says\n    Tail, nose bindings, etc.\n    Explain how bindings work\n    Front and back foot, toe and heelside, edge, etc.\n    Rachet (alligator eating strap)\n    Opening and closing strap with feet out of bindings\nYard Sale Game\n    In a safe place, pile all equipment\n    Have all kids run to find their board, bring it back and open their straps\n\n\nKnows How to Stand on the Board to Balance\n    Flat terrain strap in both feet, play head and shoulders\n    Practice by towing with pole or hoops\n    Being tall and small\n\nLITTLE RIPPERS - A BRONZE\n\n\n\nFreeride Skills\nJump 180s Board Off\n   Boots on, practice jumping and spinning on flats\nNose and Tail Press (Static)\n   Board on, have kids challenge themselves with new positions (after they\n   have experienced sliding a bit)\n\n\nCarrying the Board\n   Stress putting bindings down in the snow to avoid runaways\n\n\nTry to Use the Carpet with Assistance",
+    "rows": [
+      {
+        "id": "rippers-1-1",
+        "label": "Equipment knowledge",
+        "detail": "Boots on/off; names three board parts; bindings on/off"
+      },
+      {
+        "id": "rippers-1-2",
+        "label": "Balance",
+        "detail": "Both feet strapped in; pulled on flat terrain"
+      },
+      {
+        "id": "rippers-1-3",
+        "label": "Body position",
+        "detail": "Tall/small while sliding; static jumps and nose/tail presses"
+      },
+      {
+        "id": "rippers-1-4",
+        "label": "Lift use",
+        "detail": "Carpet with assistance"
+      },
+      {
+        "id": "rippers-1-5",
+        "label": "Safety",
+        "detail": "Bindings face down"
+      }
+    ]
+  },
+  "rippers-2": {
+    "name": "Little Rippers \u00b7 Silver",
+    "sport": "snowboard",
+    "level": "Silver",
+    "source": "Little Rippers Progress Report, page 1",
+    "guidance_source": "Snowboarding Instructor Cards, pages 3",
+    "guidance": "LITTLE RIPPERS - B SILVER\n\n\n\nGoals\n   Learn about balance while sliding\n\n\nTechnical Skills\n   Knows own equipment\n   Review parts of board and boots\n   Play Yard Sale\n\n\nCan Stand on Board to Balance While Moving\n   Start by towing with both feet attached\nMinimum Terrain = Maximum Mileage\n   Experimenting on safe terrain will allow kids to feel the movements\n   required to adapt their body position to various speeds and slopes\nStraight Running\n   Safe terrain, change body positions\n   Imitate an animal\n   Follow a line, try grabbing nose or tail\n\n\nFreeride Skills\nSmall Jumps\n   While sliding, try two-foot jumps\nSliding nose and tail presses\n   Start to have kids move their body over the tail or nose\nGliding\n   Gliding with speed, the terrain should ensure speed control\n\n\nTry to Use the Carpet Without Assistance",
+    "rows": [
+      {
+        "id": "rippers-2-1",
+        "label": "Equipment knowledge",
+        "detail": "Knows own equipment; names five parts; bindings on/off"
+      },
+      {
+        "id": "rippers-2-2",
+        "label": "Balance",
+        "detail": "Straight running with both feet strapped in"
+      },
+      {
+        "id": "rippers-2-3",
+        "label": "Body position",
+        "detail": "Follow a line; grab nose/tail; attempt two-foot jump; sliding presses; glide with speed"
+      },
+      {
+        "id": "rippers-2-4",
+        "label": "Lift use",
+        "detail": "Carpet without assistance sometimes"
+      }
+    ]
+  },
+  "rippers-3": {
+    "name": "Little Rippers \u00b7 Gold",
+    "sport": "snowboard",
+    "level": "Gold",
+    "source": "Little Rippers Progress Report, page 1",
+    "guidance_source": "Snowboarding Instructor Cards, pages 4",
+    "guidance": "LITTLE RIPPERS - C GOLD\n\n\n\nGoals\n    Improve comfort while gliding, both feet attached\n    Learn to use pivot to change direction\n\nTechnical Skills\nStraight Running\n    Both feet attached, continue to develop balance while sliding straight\nCan show three different body positions, straight running\n    Fore/aft, rotational, vertical and lateral\n    Use animal games, Simon Says or throw snowballs\n\n\nJ-Turns\n    Using a hoop, pole or tether, initiate some rotation in the\n    board on flat terrain\n    With hands on hips and elbows out, use the lead elbow to\n    direct the pivot movement\n    Look in direction they want to go\n    Gently direct eyes toward heelside, staring in to your eyes\n    and you walk in front of them\n\n\nSliding 180s\n    With assistance (hands, hoops) have students try to\n    initiate the J-turn and continue to look with the eyes to\n    complete a rotation on flat terrain\n\n\nCan Use the Beginner Carpets Unassisted",
+    "rows": [
+      {
+        "id": "rippers-3-1",
+        "label": "Equipment knowledge",
+        "detail": "Carries equipment; knows all board parts; bindings on/off"
+      },
+      {
+        "id": "rippers-3-2",
+        "label": "Balance",
+        "detail": "Straight run/slide with slight pivots"
+      },
+      {
+        "id": "rippers-3-3",
+        "label": "Body position",
+        "detail": "Three positions: fore/aft, rotational, vertical or lateral"
+      },
+      {
+        "id": "rippers-3-4",
+        "label": "J-turns and 180s",
+        "detail": "Assisted J-turns and sliding 180s"
+      },
+      {
+        "id": "rippers-3-5",
+        "label": "Lift use",
+        "detail": "Carpet unassisted"
+      }
+    ]
+  },
+  "devo-race": {
+    "name": "Devo \u00b7 Race development (proposed)",
+    "sport": "ski",
+    "level": "Devo",
+    "proposed": true,
+    "source": "Meeting notes: proposed race and park report addition",
+    "guidance_source": "Season Plan 2022-23, pages 5-12; Manual 2025/26, pages 19-20",
+    "guidance": "Draft observation categories for Karen and the technical team to review. No numeric pass thresholds have been approved. Follow current resort procedures, participant readiness and supervisor direction. The supplied manual requires staff park training before bringing students into the Beginner Playground. Do not treat a recorded skill as permission to enter a feature.",
+    "rows": [
+      {
+        "id": "devo-race-1",
+        "label": "Chooses a controlled line through a supervised course"
+      },
+      {
+        "id": "devo-race-2",
+        "label": "Uses turn shape to manage speed"
+      },
+      {
+        "id": "devo-race-3",
+        "label": "Applies balance and pressure control in a course"
+      },
+      {
+        "id": "devo-race-4",
+        "label": "Explains start, finish and course safety"
+      }
+    ]
+  },
+  "devo-park": {
+    "name": "Devo \u00b7 Park foundations (proposed)",
+    "sport": "ski",
+    "level": "Devo",
+    "proposed": true,
+    "source": "Meeting notes: proposed race and park report addition",
+    "guidance_source": "Season Plan 2022-23, pages 5-12; Manual 2025/26, pages 19-20",
+    "guidance": "Draft observation categories for Karen and the technical team to review. No numeric pass thresholds have been approved. Follow current resort procedures, participant readiness and supervisor direction. The supplied manual requires staff park training before bringing students into the Beginner Playground. Do not treat a recorded skill as permission to enter a feature.",
+    "rows": [
+      {
+        "id": "devo-park-1",
+        "label": "Recognizes feature choice and safe stopping locations"
+      },
+      {
+        "id": "devo-park-2",
+        "label": "Follows supervisor guidance for entry and spacing"
+      },
+      {
+        "id": "devo-park-3",
+        "label": "Maintains balance on approved introductory terrain"
+      },
+      {
+        "id": "devo-park-4",
+        "label": "Describes a safe next step for practice"
+      }
+    ]
+  }
+}

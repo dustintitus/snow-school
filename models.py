@@ -27,6 +27,16 @@ class Program(db.Model):
     def __repr__(self):
         return f'<Program {self.name}>'
 
+class ProgramSupervisor(db.Model):
+    """One supervisor per program; an instructor may supervise multiple programs."""
+    program_id = db.Column(db.Integer, db.ForeignKey('program.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    assigned_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    program = db.relationship('Program', backref=db.backref('supervision', uselist=False, cascade='all, delete-orphan'))
+    supervisor = db.relationship('User', foreign_keys=[user_id])
+
+
 class ProgramProfile(db.Model):
     """Catalogue and planning details that extend the legacy program record."""
     id = db.Column(db.Integer, primary_key=True)
@@ -97,6 +107,15 @@ class Team(db.Model):
     instructor = db.relationship('User', foreign_keys=[instructor_id], backref='managed_teams')
     students = db.relationship('User', foreign_keys='User.team_id', backref='team')
     
+    @property
+    def participants(self):
+        from app import CURRENT_SEASON
+        enrollment_ids = db.session.query(Enrollment.student_id).filter(
+            Enrollment.team_id == self.id, Enrollment.season == CURRENT_SEASON,
+            Enrollment.status.in_(('registered', 'active', 'completed')))
+        return User.query.filter(User.user_type == 'student', db.or_(
+            User.team_id == self.id, User.id.in_(enrollment_ids))).order_by(User.full_name).all()
+
     def __repr__(self):
         return f'<Team {self.name}>'
 
@@ -293,3 +312,17 @@ class Evaluation(db.Model):
     
     def __repr__(self):
         return f'<Evaluation {self.id}>'
+
+
+class AdminTask(db.Model):
+    """Shared admin work queue; no automatic execution or notifications."""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(160), nullable=False)
+    notes = db.Column(db.Text, nullable=False, default='')
+    status = db.Column(db.String(20), nullable=False, default='todo')
+    priority = db.Column(db.String(10), nullable=False, default='normal')
+    due_date = db.Column(db.Date)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    owner = db.relationship('User', foreign_keys=[owner_id])

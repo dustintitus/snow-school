@@ -1,0 +1,11 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/assistant.css') }}">
+<button type="button" id="assistant-toggle" aria-expanded="false" aria-controls="admin-assistant">✦ Ask Snow School</button>
+<section id="admin-assistant" aria-label="Snow School assistant" hidden data-endpoint="{{ url_for('admin_assistant.chat') }}">
+  <header><div><strong>Snow School assistant</strong><small>Admin help · Task organization</small></div><button type="button" id="assistant-close" aria-label="Close assistant">×</button></header>
+  <p class="assistant-note">Ask about school totals or where to find things. Questions and summaries go to OpenAI. Avoid personal or sensitive information. Check answers before acting.</p>
+  <div id="assistant-messages" role="log" aria-live="polite" aria-label="Conversation"><p class="assistant-reply">How can I help? Try “How many participants are registered?” or “Where do I manage attendance?”</p></div>
+  <p id="assistant-status" role="status"></p>
+  <div class="assistant-task-actions"><a href="{{ url_for('admin_tasks.index') }}">View tasks</a> <button type="button" id="assistant-save-task" data-url="{{ url_for('admin_tasks.index') }}" disabled>Turn last exchange into a task</button></div>
+  <form id="assistant-form"><input type="hidden" name="_csrf_token" value="{{ csrf_token }}"><label for="assistant-question">Your question</label><textarea id="assistant-question" name="message" maxlength="2000" rows="2" required placeholder="Ask a question…"></textarea><div><button type="button" id="assistant-reset">New chat</button><button type="submit" id="assistant-send">Send</button></div></form>
+</section>
+<script src="{{ url_for('static', filename='js/assistant.js') }}" defer></script>

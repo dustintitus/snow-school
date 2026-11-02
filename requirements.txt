@@ -6,5 +6,11 @@ Werkzeug==3.0.1
 gunicorn==21.2.0
 # Database drivers
 psycopg2-binary==2.9.9
+psycopg[binary]>=3.2,<4
 python-dotenv==1.0.0
-vercel>=0.5.0,<1
+vercel==0.10.0
+
+reportlab>=4.4,<5
+
+openpyxl>=3.1,<4
+google-auth[requests]>=2.38,<3

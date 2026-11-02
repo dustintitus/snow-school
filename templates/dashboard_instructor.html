@@ -2,7 +2,8 @@
 
 {% block title %}Instructor Dashboard{% endblock %}
 
-{% block content %}
+{% block content %}{% include 'staff/_nav.html' %}
+{% include 'learning/_nav.html' %}
 <div class="dashboard-header">
     <h2>Instructor Dashboard</h2>
     <a href="{{ url_for('coach_today') }}" class="btn btn-primary">Open coach mode <span>↗</span></a>
@@ -15,7 +16,7 @@
     <article class="instructor-team-card">
         <div class="team-card-top"><span class="badge badge-{{ team.team_type }}">{{ team.team_type }}</span><span>{{ today.strftime('%a · %b %d') }}</span></div>
         <h3>{{ team.name }}</h3><p>{{ team.program.name }}</p>
-        <div class="team-card-metrics"><div><strong>{{ team.students|length }}</strong><span>Athletes</span></div><div><strong>{{ activity.attendance_count }}/{{ team.students|length }}</strong><span>Attendance</span></div></div>
+        <div class="team-card-metrics"><div><strong>{{ team.participants|length }}</strong><span>Athletes</span></div><div><strong>{{ activity.attendance_count }}/{{ team.participants|length }}</strong><span>Attendance</span></div></div>
         <a href="{{ url_for('team_session', team_id=team.id) }}" class="btn btn-primary">Start today’s session <span>↗</span></a>
     </article>
     {% endfor %}
@@ -40,7 +41,6 @@
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Email</th>
                 <th>Class/Team</th>
                 <th>Sport Type</th>
                 <th>Current Level</th>
@@ -53,7 +53,6 @@
             {% set latest_evaluation = student_evaluations|first if student_evaluations else none %}
             <tr>
                 <td>{{ student.full_name }}</td>
-                <td>{{ student.email }}</td>
                 <td>
                     {{ student.team.name if student.team else 'Not assigned' }}
                     {% if student.team %}

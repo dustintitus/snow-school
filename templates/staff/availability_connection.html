@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Google availability connection{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:800px">
+  <h1>Google availability connection</h1>
+  <p>The school's Google script reads instructor-reviewed availability once an hour. It updates App Availability and the weekday summaries in the master schedule.</p>
+  <p>Only the Google account and client ID below can read this feed. The feed includes instructor names, emails, dates and availability; it excludes participant records and private profile details.</p>
+  <form method="post">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="mb-3"><label class="form-label" for="audience">Google client ID</label>
+      <input class="form-control" id="audience" name="audience" value="{{ values.get('audience', '') }}" required maxlength="280">
+      <div class="form-text">Run appAvailabilityConnectionInfo in the Google script and copy its client ID. This is a public identifier, not a password or token.</div>
+    </div>
+    <div class="mb-3"><label class="form-label" for="email">Google account running the hourly trigger</label>
+      <input class="form-control" id="email" name="email" type="email" value="{{ values.get('email', '') }}" required maxlength="120">
+    </div>
+    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="enabled" name="enabled" {% if values.get('enabled') %}checked{% endif %}>
+      <label class="form-check-label" for="enabled">Enable read-only availability feed for this Google script</label></div>
+    <button class="btn btn-primary" type="submit">Save connection</button>
+  </form>
+</div>
+{% endblock %}

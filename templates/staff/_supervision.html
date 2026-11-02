@@ -1,0 +1,4 @@
+{% if supervised_teams %}
+<section class="card" aria-label="Program supervision"><h3>Program supervision</h3><p>Read-only access to all classes in your assigned programs. Your own class workspaces remain available below.</p>
+{% for team in supervised_teams %}<p><a href="{{ url_for('supervised_class', team_id=team.id, date=selected_date.isoformat()) }}">{{ team.program.name }} · {{ team.name }}</a> · {{ team.instructor.full_name }}</p>{% endfor %}
+</section>{% endif %}

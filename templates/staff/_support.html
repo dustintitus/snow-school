@@ -1,0 +1,1 @@
+{% set support=participant_support(student.id) %}{% if support and support.special_needs %}<div class="participant-support"><strong>Support needs</strong><p>{{ support.instructor_notes }}</p>{% if support.phone %}<p>{{ support.contact_name }} · <a href="tel:{{ support.phone }}">{{ support.phone }}</a></p>{% endif %}</div>{% endif %}

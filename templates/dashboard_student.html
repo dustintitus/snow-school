@@ -3,6 +3,7 @@
 {% block title %}Student Dashboard{% endblock %}
 
 {% block content %}
+<a class="btn btn-secondary" href="{{ url_for('learning.reports', student_id=current_user.id) }}">Progress reports</a>
 <div class="dashboard-header">
     <h2>My Dashboard</h2>
 </div>

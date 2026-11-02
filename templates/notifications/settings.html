@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Notification settings · Snow School{% endblock %}
+{% block content %}
+<div class="coach-home"><h2>Notification settings</h2><p>Messages stay in your inbox. These settings control optional phone alerts.</p>
+<form method="post" class="card"><input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+<label class="notification-option"><input type="checkbox" name="push" {% if pref.push_enabled %}checked{% endif %}> Push Notifications</label>
+{% for key,label in categories.items() %}<label class="notification-option"><input type="checkbox" name="{{ key }}" {% if pref[key + '_enabled'] %}checked{% endif %}> {{ label }}</label>{% endfor %}
+<button class="btn btn-primary">Save settings</button></form>
+{% if native_portal %}<div class="card"><h3>This phone</h3><p id="device-status" aria-live="polite">Checking permission…</p><button class="btn btn-secondary" type="button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:'request-push'}))">Enable phone alerts</button> <button class="btn btn-secondary" type="button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:'push-settings'}))">Open phone settings</button></div>{% else %}<p>Phone alerts require Snow School Coach on your phone and notification permission. Enable them in the app after saving your preferences.</p>{% endif %}
+<form method="post" action="{{ url_for('notifications.test_notification') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token }}"><button class="btn btn-secondary">Send notification check</button></form>
+<p><a href="{{ url_for('notifications.inbox') }}">← Inbox</a></p></div>
+{% endblock %}
