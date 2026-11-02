@@ -2,13 +2,13 @@
 
 This code matches the supervisor release already live at https://snowschool.app, production deployment `dpl_9tV5d5RMDJQFKZBNXHEXMrjCtYGU`, original isolated release commit `7f0f3f38660d26261b4f0338217301b1070d4467`. No additional deployment or assignment is part of this PR.
 
-## GitHub release-source gap
+## Main reconciliation
 
-GitHub `main` was still `939a4477dd21ce776b0c17dd5a50dce46c82e8f2`, predating the current staff portal, learning, notifications and workbook imports. Applying this feature directly there would omit its deployed dependencies. The base branch `release/production-baseline-2026-11-02` therefore preserves the exact 129-file pre-feature production source plus its existing regression tests. The feature PR targets that baseline, keeping the PR diff limited to the supervisor feature and approved schema-only startup change. The original dirty working checkout was not changed.
+Before this reconciliation, GitHub `main` remained at `939a4477dd21ce776b0c17dd5a50dce46c82e8f2`, predating the live staff portal, learning, notifications and workbook imports. The baseline branch `release/production-baseline-2026-11-02` preserves the exact 129-file pre-supervisor production source plus existing regression tests. PR #1 initially reviewed the focused supervisor/startup change against that baseline; it now reconciles all already-deployed source into `main` with explicit authorization. No new product functionality is introduced by the reconciliation.
 
-All 131 final deployed source files were checked against the reconciled branch. Runtime application files match byte for byte. The intentional source-only exception is `vercel.json`: exact-name deployment-disable rules cover only the baseline and feature review branches, preventing Git-triggered redeployment. These rules live on both PR branches and do not change the running project, infrastructure settings, or `main` behavior. Documentation/test files are excluded from deployed source as before.
+All 131 current production source files were audited against the merge inputs: no added or missing deployment files, and all 130 non-config files match byte for byte. The only intentional source exception is `vercel.json`: exact-name deployment-disable rules cover the baseline and feature review branches so source preservation did not trigger preview deployments. `main` remains enabled and uses the existing Git production deployment path. Tests and this document are excluded from deployment.
 
-`main` still requires a separate reconciliation of previously deployed work. Do not retarget or squash this PR into `main` without resolving that gap, and do not deploy stale `main`. Review/merge of this draft does not itself authorize deployment.
+The prospective merge tree was checked against the tested branch. Existing non-deployed repository content (including mobile source) is retained. The original dirty local working checkout is not overwritten. Reconciliation uses a normal PR merge, not a force push or a self-approved review. Its equivalent production rebuild is verified against the already-approved runtime source and health checks.
 
 ## Behavior and security
 
