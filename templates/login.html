@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 
+{% block title %}Sign in | Horseshoe Valley Resort Snow School{% endblock %}
+
 {% block content %}
 <div class="auth-container">
     <div class="auth-card">
-        <p class="eyebrow">Family & staff portal</p>
+        <p class="eyebrow">{{ 'Coach & staff sign-in' if native_portal else 'Family & staff portal' }}</p>
         <h2>Welcome back</h2>
         <form method="POST" action="{{ url_for('login') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">

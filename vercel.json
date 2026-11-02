@@ -2,7 +2,7 @@
   "functions": {
     "api/index.py": {
       "memory": 1024,
-      "maxDuration": 30
+      "maxDuration": 120
     }
   },
   "rewrites": [
@@ -13,6 +13,11 @@
   ],
   "env": {
     "FLASK_ENV": "production"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/notifications",
+      "schedule": "* * * * *"
+    }
+  ]
 }
-

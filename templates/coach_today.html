@@ -1,36 +1,48 @@
 {% extends "base.html" %}
 {% block title %}Coach Today | Snow School{% endblock %}
 {% block body_class %}coach-app{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/coach.css', v='20261003') }}">{% endblock %}
 {% block content %}
-<header class="coach-today-header">
-    <div><p class="eyebrow">Coach companion</p><h2>Today on the hill</h2><p>{{ selected_date.strftime('%A, %B %d') }} · {{ current_user.full_name }}</p></div>
-    <form method="GET" class="coach-date-form"><label for="coach-date">Working date</label><input id="coach-date" name="date" type="date" value="{{ selected_date.isoformat() }}" onchange="this.form.submit()"></form>
+<div class="coach-home">
+<header class="coach-welcome">
+    <h2>Welcome, {{ current_user.full_name.split()[0] }}.</h2>
+    <form method="GET" class="coach-date-form"><label for="coach-date">Plan your day</label><div class="coach-date-controls"><input id="coach-date" name="date" type="date" value="{{ selected_date.isoformat() }}"><button type="submit" class="btn btn-secondary">View</button></div></form>
 </header>
-
-<div class="coach-connectivity" data-connectivity aria-live="polite"><span></span><strong>Online</strong><small>Updates save immediately</small></div>
-
-{% if cards %}
-<div class="coach-class-list">
-    {% for card in cards %}
-    <article class="coach-class-card">
-        <div class="coach-card-status status-{{ card.session.status if card.session else 'not_started' }}">
-            {{ card.session.status_label if card.session else 'Not started' }}
-        </div>
-        <p class="eyebrow">{{ card.team.program.name }}</p>
-        <h3>{{ card.team.name }}</h3>
-        <div class="coach-card-metrics">
-            <div><strong>{{ card.team.students|length }}</strong><span>Roster</span></div>
-            <div><strong>{{ card.present }}</strong><span>Present</span></div>
-            <div><strong>{{ card.recorded }}/{{ card.team.students|length }}</strong><span>Recorded</span></div>
-        </div>
-        {% if card.session and card.session.meeting_point %}<p class="meeting-point"><span>Meet</span>{{ card.session.meeting_point }}</p>{% endif %}
-        <a href="{{ url_for('team_session', team_id=card.team.id, date=selected_date.isoformat()) }}" class="btn btn-primary btn-block">Open class <span>↗</span></a>
-    </article>
-    {% endfor %}
+{% include "staff/_progress.html" %}
+{% include "staff/_nav.html" %}
+{% for section, is_school in [('Classes', false), ('School Groups', true)] %}
+{% set section_cards = [] %}{% for card in cards if (card.team.id in school_ids)==is_school %}{% set _ = section_cards.append(card) %}{% endfor %}
+<div class="coach-section-title"><div><p class="eyebrow">{{ selected_date.strftime('%A, %B %d') }}</p><h3>{{ section }}</h3></div><span class="coach-count">{{ section_cards|length }} assigned</span></div>
+{% if section_cards %}
+<div class="coach-task-grid">
+{% for card in section_cards %}
+{% set teaching = card.teaching %}
+<article class="coach-task-card">
+    <div class="coach-card-heading"><span class="coach-week">{{ teaching.label }}</span><span class="coach-state">{{ card.session.status_label if card.session else ('Class day' if teaching.scheduled else 'Planning') }}</span></div>
+    <p class="coach-program">{{ card.team.program.name }}</p><h3>{{ card.team.name }}</h3>
+    <p class="coach-class-meta">{{ card.team.participants|length }} learners · {{ card.recorded }}/{{ card.team.participants|length }} attendance recorded</p>
+    {% if card.session and card.session.meeting_point %}<p class="coach-class-meta">Meet at {{ card.session.meeting_point }}</p>{% endif %}
+    {% if teaching.focus %}
+    <div class="coach-focus"><p class="eyebrow">This week’s suggested focus</p><h4>{{ teaching.focus[0] }}</h4><p>{{ teaching.focus[1] }}</p></div>
+    {% if not teaching.scheduled %}<p class="coach-helper">No regular class scheduled for this date. You can still prepare for this week.</p>{% endif %}
+    {% else %}<p class="coach-helper">{{ teaching.note }}</p>{% endif %}
+    <details><summary>Quick roster · {{ card.team.participants|length }} participants</summary><ul>{% for student in card.team.participants %}<li>{{ student.full_name }}{% include 'staff/_support.html' %}</li>{% endfor %}</ul></details>
+    <div class="coach-tasks">
+        <a class="coach-task" href="{{ url_for('team_session', team_id=card.team.id, date=selected_date.isoformat(), _anchor='attendance') }}"><span class="coach-task-icon" aria-hidden="true">✓</span><span><strong>Take attendance</strong><small>{{ card.present }} present · {{ card.recorded }} recorded</small></span><span aria-hidden="true">→</span></a>
+        <a class="coach-task" href="{{ url_for('coach_lesson_plan', team_id=card.team.id, date=selected_date.isoformat()) }}"><span class="coach-task-icon" aria-hidden="true">▤</span><span><strong>Review lesson plan</strong><small>{{ 'Weekly outline & learner goals' if teaching.week else 'Review learner goals' }}</small></span><span aria-hidden="true">→</span></a>
+        {% if card.evaluation.enabled %}
+        <a class="coach-task coach-task-evaluation" href="{{ url_for('coach_lesson_plan', team_id=card.team.id, date=selected_date.isoformat(), _anchor='evaluations') }}"><span class="coach-task-icon" aria-hidden="true">☆</span><span><strong>Evaluations</strong><small>{{ card.evaluation.message }}</small></span><span aria-hidden="true">→</span></a>
+        {% else %}
+        <div class="coach-task coach-task-disabled" role="link" aria-disabled="true"><span class="coach-task-icon" aria-hidden="true">☆</span><span><strong>Evaluations</strong><small>{{ card.evaluation.message }}</small></span><span aria-hidden="true">—</span></div>
+        {% endif %}
+    </div>
+    <a class="coach-open-class" href="{{ url_for('team_session', team_id=card.team.id, date=selected_date.isoformat()) }}">Open class workspace →</a>
+</article>
+{% endfor %}
 </div>
-{% else %}
-<div class="coach-empty"><h3>No classes assigned</h3><p>Ask a snow school administrator to assign a team to your coach account.</p></div>
-{% endif %}
-
-<nav class="coach-bottom-nav" aria-label="Coach navigation"><a class="is-active" href="{{ url_for('coach_today') }}"><span>●</span>Today</a><a href="{{ url_for('dashboard') }}"><span>▦</span>Records</a></nav>
+{% else %}<div class="coach-empty"><h3>Your classes will appear here</h3><p>Once your administrator assigns a class, you’ll find its attendance, weekly plan and evaluations here.</p></div>{% endif %}
+{% endfor %}<section><h3>Privates</h3><p>Private & semi-private lessons</p>{% include 'staff/_privates.html' %}</section>
+<div class="coach-resources"><h3>Support for your day</h3><a href="{{ url_for('learning.training') }}">Weekly instructor training <span>→</span></a><a href="{{ url_for('learning.hub') }}">Teaching hub & resources <span>→</span></a><a href="{{ url_for('dashboard') }}">Learner records <span>→</span></a></div>
+</div>
+<nav class="coach-bottom-nav" aria-label="Coach navigation"><a class="is-active" href="{{ url_for('coach_today') }}"><span>●</span>Today</a><a href="{{ url_for('staff_portal.classes') }}"><span>▤</span>Classes</a><a href="{{ url_for('dashboard') }}"><span>▦</span>Records</a><a href="{{ url_for('staff_portal.profile') }}"><span>○</span>Profile</a></nav>
 {% endblock %}

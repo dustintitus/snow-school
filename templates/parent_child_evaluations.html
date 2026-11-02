@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ student.full_name }} · Evaluations{% endblock %}
 {% block content %}
+<a class="btn btn-secondary" href="{{ url_for('learning.reports', student_id=student.id) }}">Progress reports</a>
 <div class="dashboard-header"><div><p class="eyebrow">Evaluation history</p><h2>{{ student.full_name }}</h2><p class="dashboard-lede">Every completed evaluation, newest first.</p></div><a href="{{ url_for('dashboard') }}" class="btn btn-secondary">All children</a></div>
-{% if media_items %}<section class="card"><div class="panel-heading"><div><p class="eyebrow">Private media</p><h3>Progress photos</h3></div><span class="panel-total">{{ media_items|length }}</span></div><div class="participant-media-grid">{% for media in media_items %}<figure><img src="{{ url_for('view_participant_media', media_id=media.id) }}" alt="Progress photo for {{ student.full_name }}"><figcaption>{{ media.created_at.strftime('%b %d, %Y') }}{% if media.caption %} · {{ media.caption }}{% endif %}</figcaption></figure>{% endfor %}</div></section>{% endif %}
+{% if media_items %}<section class="card"><div class="panel-heading"><div><p class="eyebrow">Private media</p><h3>Progress photos</h3></div><span class="panel-total">{{ media_items|length }}</span></div><div class="participant-media-grid">{% for media in media_items %}<figure>{% if media.content_type.startswith('video/') %}<video controls playsinline preload="metadata" src="{{ url_for('view_participant_media',media_id=media.id) }}"></video>{% else %}<img src="{{ url_for('view_participant_media', media_id=media.id) }}" alt="Progress photo for {{ student.full_name }}">{% endif %}<figcaption>{{ media.created_at.strftime('%b %d, %Y') }}{% if media.caption %} · {{ media.caption }}{% endif %}</figcaption></figure>{% endfor %}</div></section>{% endif %}
 {% if evaluations %}<div class="evaluation-list">
     {% for evaluation in evaluations %}<article class="evaluation-history-row">
         <div class="evaluation-history-date"><strong>{{ evaluation.created_at.strftime('%b %d') }}</strong><small>{{ evaluation.created_at.strftime('%Y') }}</small></div>
@@ -11,4 +12,5 @@
         <a class="btn btn-primary btn-sm" href="{{ url_for('view_evaluation', evaluation_id=evaluation.id) }}">Open evaluation</a>
     </article>{% endfor %}
 </div>{% else %}<div class="card no-records"><h3>No evaluations yet</h3><p>Completed evaluations will appear here automatically.</p></div>{% endif %}
+<section class="card"><h2>Issued reports & certificates</h2>{% for report in reports %}<p><a href="{{ url_for('learning.report',report_id=report.id) }}">{{ report.snapshot.name }} · {{ report.season }} · View evaluation</a>{% if completion_approval(report.id) %} · <a href="{{ url_for('staff_portal.certificate',student_id=student.id,report_id=report.id) }}">Download certificate (PDF)</a>{% endif %}</p>{% else %}<p>Your school’s approved reports will appear here.</p>{% endfor %}</section>
 {% endblock %}

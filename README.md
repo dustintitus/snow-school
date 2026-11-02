@@ -56,21 +56,15 @@ python app.py
 
 3. Access the application at `http://localhost:5000`
 
-## Sample Accounts
+## Production sign-in
 
-The application comes with three pre-configured accounts:
+Use https://snowschool.app/login. The configured demo usernames are `admin`,
+`instructor1`, `student1` (no space), and `parent.demo`.
 
-- **Admin**
-  - Username: `admin`
-  - Password: `admin123`
-
-- **Instructor**
-  - Username: `instructor1`
-  - Password: `instructor123`
-
-- **Student** (Skiing - STEP Program)
-  - Username: `student1`
-  - Password: `student123`
+Production passwords are managed through the protected Vercel demo-account
+configuration. The development seed passwords are **not production credentials**.
+Ask the administrator for the current private sign-in details; do not rely on
+older setup examples or commit passwords to this repository.
 
 ## Database Schema
 
@@ -139,3 +133,22 @@ athlete_evaluation_app/
 ## License
 
 MIT License - Feel free to use and modify as needed.
+
+## Teaching workspace (September 2026)
+
+Authenticated staff can open `/learning/` for the teaching hub. Admins create the
+season's eight draft training weeks from `/learning/training`, review the content,
+and choose release dates. Content review and training attendance are separate.
+
+Progression cards are under `/learning/participants/<student_id>`. Staff record
+observations; parent reports are saved snapshots that an admin must issue before
+linked families can see them. The existing evaluation system remains available.
+
+School groups, instructor handoffs, manual private-lesson assignments and incident
+follow-up are available through the hub. Aspenware/RTP is **not connected**.
+See `docs/2026-09-karen-review.md` for source mappings and unresolved decisions.
+
+The new models use additive tables registered at app import. Existing `db.create_all()`
+startup paths create them; there are no destructive changes or automatic report
+issuance / training publication. For an isolated check, install `requirements.txt`
+in a clean Python 3.12 environment and run `python -m unittest discover -s tests -v`.

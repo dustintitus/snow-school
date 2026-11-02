@@ -42,7 +42,8 @@
             </div>
             <input type="hidden" id="instructor_id" name="instructor_id" value="">
             <div class="form-group" id="team_group" style="display: none;">
-                <label for="team_id">Assign to Team</label>
+                <label for="program_id">Program registration</label><select id="program_id" name="program_id"><option value="">Choose program (optional)</option>{% for program in programs %}<option value="{{ program.id }}">{{ program.name }}</option>{% endfor %}</select><p>Leave the class blank to use program placement settings. Manual placement keeps the participant unassigned.</p>
+<label for="team_id">Assign to Team</label>
                 <select id="team_id" name="team_id" onchange="updateInstructorFromTeam()">
                     <option value="">Select Team</option>
                     {% for team in teams %}

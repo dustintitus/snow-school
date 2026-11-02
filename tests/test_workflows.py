@@ -26,7 +26,7 @@ class WorkflowTestCase(unittest.TestCase):
         with app.app_context():
             db.drop_all()
             db.create_all()
-            program = Program(name='Snowflakes', frequency_type='weekly', frequency_value=8, start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
+            program = Program(name='Snowflakes', frequency_type='weekly', frequency_days='saturday', frequency_value=8, start_date=date(2026, 1, 1), end_date=date(2026, 12, 31))
             instructor = User(username='coach', email='coach@example.com', password_hash=generate_password_hash('password123'), full_name='Coach North', user_type='instructor')
             other = User(username='other', email='other@example.com', password_hash=generate_password_hash('password123'), full_name='Coach South', user_type='instructor')
             db.session.add_all([program, instructor, other])
@@ -47,7 +47,8 @@ class WorkflowTestCase(unittest.TestCase):
             flask_session['_user_id'] = str(user_id)
             flask_session['_fresh'] = True
 
-    def test_team_owner_can_open_session_and_legacy_assignment_is_not_required(self):
+    @patch('learning.today', return_value=date(2026, 1, 24))
+    def test_team_owner_can_open_session_and_legacy_assignment_is_not_required(self, _today):
         self.login_as(self.instructor_id)
         response = self.client.get(f'/teams/{self.team_id}/session?date=2026-02-07')
         self.assertEqual(response.status_code, 200)
@@ -76,7 +77,7 @@ class WorkflowTestCase(unittest.TestCase):
         response = self.client.get('/coach?date=2026-02-07')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Saturday Snowflakes', response.data)
-        self.assertIn(b'Coach companion', response.data)
+        self.assertIn(b'Welcome, Coach.', response.data)
 
     def test_coach_can_update_class_status(self):
         self.login_as(self.instructor_id)
@@ -119,6 +120,10 @@ class WorkflowTestCase(unittest.TestCase):
         self.assertEqual(robots.data, b'User-agent: *\nDisallow: /\n')
 
     def test_mobile_login_redirects_coach_to_requested_local_path(self):
+        from staff_portal import profile_for
+        with app.app_context():
+            profile_for(self.instructor_id).onboarding_seen_at = datetime.utcnow()
+            db.session.commit()
         response = self.client.post('/login', data={
             'username': 'coach',
             'password': 'password123',
@@ -128,6 +133,10 @@ class WorkflowTestCase(unittest.TestCase):
         self.assertTrue(response.headers['Location'].endswith('/coach'))
 
     def test_login_rejects_external_redirects(self):
+        from staff_portal import profile_for
+        with app.app_context():
+            profile_for(self.instructor_id).onboarding_seen_at = datetime.utcnow()
+            db.session.commit()
         response = self.client.post('/login', data={
             'username': 'coach',
             'password': 'password123',
@@ -288,10 +297,13 @@ class WorkflowTestCase(unittest.TestCase):
             seed_horseshoe_catalogue('render-catalogue')
         self.login_as(admin_id)
         dashboard = self.client.get('/dashboard')
+        overview = self.client.get('/admin/overview')
         programs = self.client.get('/admin/programs')
         self.assertEqual(dashboard.status_code, 200)
-        self.assertIn(b'Snow School overview', dashboard.data)
-        self.assertIn(b'Returning guests', dashboard.data)
+        self.assertIn(b'What do you need to do?', dashboard.data)
+        self.assertEqual(overview.status_code, 200)
+        self.assertIn(b'Snow School overview', overview.data)
+        self.assertIn(b'Returning guests', overview.data)
         self.assertEqual(programs.status_code, 200)
         self.assertIn(b'Adult Social Ski + Snowboard', programs.data)
         self.assertIn(b'Need capacity', programs.data)
@@ -321,7 +333,8 @@ class WorkflowTestCase(unittest.TestCase):
             self.assertEqual(CurriculumSkill.query.count(), 56)
             self.assertTrue(all(len(level.skills) == 4 for level in CurriculumLevel.query.all()))
 
-    def test_curriculum_renders_for_admin_and_coach_evaluation(self):
+    @patch('learning.today', return_value=date(2026, 1, 24))
+    def test_curriculum_renders_for_admin_and_coach_evaluation(self, _today):
         with app.app_context():
             seed_step_rip_curriculum('render-curriculum')
             admin = User(username='curriculum-admin', email='curriculum@example.com', password_hash=generate_password_hash('password123'), full_name='Curriculum Admin', user_type='admin')

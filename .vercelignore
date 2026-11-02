@@ -4,3 +4,10 @@ mobile/
 tests/
 *.db
 *.log
+
+tmp/
+docs/
+.env*
+output/
+cookies.txt
+*.xlsx

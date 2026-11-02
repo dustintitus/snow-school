@@ -3,6 +3,7 @@
 {% block title %}Student Evaluations - {{ student.full_name }}{% endblock %}
 
 {% block content %}
+<a class="btn btn-secondary" href="{{ url_for('learning.reports', student_id=student.id) }}">Progress reports</a>
 <div class="dashboard-header">
     <h2>Evaluations for {{ student.full_name }}</h2>
     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
@@ -11,12 +12,8 @@
 <div class="card">
     <h3>Student Information</h3>
     <div class="evaluation-info">
-        <div class="info-row">
-            <strong>Username:</strong> {{ student.username }}
-        </div>
-        <div class="info-row">
-            <strong>Email:</strong> {{ student.email }}
-        </div>
+        {% if current_user.user_type == 'admin' %}<div class="info-row"><strong>Username:</strong> {{ student.username }}</div>{% endif %}
+        {% if current_user.user_type == 'admin' %}<div class="info-row"><strong>Email:</strong> {{ student.email }}</div>{% endif %}
         <div class="info-row">
             <strong>Instructor:</strong> {{ student.instructor.full_name if student.instructor else 'Not assigned' }}
         </div>

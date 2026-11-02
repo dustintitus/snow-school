@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Lesson plan · {{ team.name }}{% endblock %}
+{% block body_class %}coach-app{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/coach.css', v='20261003') }}">{% endblock %}
+{% block content %}
+<div class="coach-home coach-plan">
+<a class="coach-back" href="{{ url_for('coach_today', date=selected_date.isoformat()) }}">← Back to your day</a>
+<header class="coach-welcome"><p class="eyebrow">{{ teaching.label }} · {{ selected_date.strftime('%b %d, %Y') }}</p><h2>{{ team.name }}</h2><p>{{ team.program.name }} · Lesson plan</p></header>
+{% if teaching.focus %}
+<section class="coach-task-card"><p class="eyebrow">Suggested lesson outline</p><h3>{{ teaching.focus[0] }}</h3><p>{{ teaching.focus[1] }}</p>
+<ol class="coach-plan-steps"><li><strong>Welcome & check in</strong><p>Take attendance, check equipment and agree on a goal for the session.</p></li><li><strong>Warm up & revisit</strong><p>Use familiar activities to revisit the skills your learners are working on below.</p></li><li><strong>Practise with purpose</strong><p>Choose a skill from the progression card. Demonstrate, practise and adapt to each learner’s readiness and the conditions.</p></li><li><strong>{{ 'Evaluate & reflect' if teaching.evaluation else 'Reflect & record' }}</strong><p>{{ 'Review each learner’s evidence and complete their evaluation. Record clear next steps.' if teaching.evaluation else 'Record what each learner demonstrated and what to revisit next time.' }}</p></li></ol>
+<p class="coach-helper">Adapt this suggested outline to your class. It is not a published school lesson plan. {{ teaching.note }}</p></section>
+{% else %}<section class="coach-task-card"><h3>{{ teaching.label }}</h3><p>{{ teaching.note }}</p></section>{% endif %}
+<section class="coach-task-card"><p class="eyebrow">What your learners are working on</p><h3>Progression & practice</h3>
+<form method="GET" class="coach-card-picker"><input type="hidden" name="date" value="{{ selected_date.isoformat() }}"><label for="card">Choose a progression card for this lesson</label><select name="card" id="card"><option value="">Select a discipline & level</option>{% for key, item in curriculum_cards.items() %}<option value="{{ key }}" {% if key == card_key %}selected{% endif %}>{{ item.name }}{% if key in working_keys %} · Skills in progress{% endif %}</option>{% endfor %}</select><button class="btn btn-secondary" type="submit">View skills</button></form>
+{% if card %}<h4>{{ card.name }}</h4>{% if skills %}<p>Skills with learning or attempted observations, as of this date:</p><ul class="coach-skill-list">{% for skill in skills %}<li>{{ skill.label }}</li>{% endfor %}</ul>{% else %}<p>No skills currently marked as learning or attempted for this card. Use the learner records below to confirm a suitable goal.</p>{% endif %}<details class="coach-guidance"><summary>Review instructor guidance</summary><p class="coach-source">{{ card.guidance_source }}</p><div class="guidance-sections">{% for section in guidance_sections %}<section><h5>{{ section.heading }}</h5>{% if section.practices %}<ul>{% for practice in section.practices %}<li>{{ practice }}</li>{% endfor %}</ul>{% endif %}</section>{% endfor %}</div></details>{% else %}<p>Select a card to review its teaching guidance. With a single card in progress, we select it from your class’s recorded observations.</p>{% endif %}
+</section>
+<section class="coach-task-card" id="evaluations"><p class="eyebrow">{{ 'Evaluation week' if teaching.evaluation else 'Individual learner goals' }}</p><h3>{{ 'Complete evaluations' if teaching.evaluation else 'Review your learners' }}</h3>
+{% if teaching.evaluation %}<p>Review progression evidence, then open each learner’s evaluation. Reports still follow the school’s approval process.</p>{% endif %}
+<div class="coach-learner-list">{% for student in team.participants|sort(attribute='full_name') %}<div><strong>{{ student.full_name }}</strong><div class="coach-learner-actions"><a href="{{ url_for('learning.progression', student_id=student.id, card=card_key) if card_key else url_for('learning.progression', student_id=student.id) }}">Review progression →</a>{% if teaching.evaluation %}<a href="{{ url_for('evaluate_student', student_id=student.id) }}">Open evaluation →</a>{% endif %}</div></div>{% else %}<p>No learners assigned yet.</p>{% endfor %}</div>
+</section>
+<a class="btn btn-primary btn-block" href="{{ url_for('team_session', team_id=team.id, date=selected_date.isoformat(), _anchor='attendance') }}">Take attendance →</a>
+</div>
+{% endblock %}

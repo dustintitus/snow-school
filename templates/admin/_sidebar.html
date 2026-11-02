@@ -1,0 +1,34 @@
+{% from 'admin/_icons.html' import icon %}
+{% set endpoint = request.endpoint or '' %}
+{% macro item(label, href, glyph, active) %}<a href="{{ href }}"{% if active %} aria-current="page"{% endif %}>{{ icon(glyph) }}<span>{{ label }}</span></a>{% endmacro %}
+<aside class="admin-sidebar">
+    <details class="admin-menu" open>
+        <summary><span>Admin menu</span><span class="admin-menu-indicator" aria-hidden="true">⌄</span></summary>
+        <nav aria-label="Admin navigation">
+            {{ item('Home', url_for('dashboard'), 'home', endpoint == 'dashboard') }}
+            {{ item('School overview', url_for('admin_overview'), 'chart', endpoint == 'admin_overview') }}
+            {{ item('Admin tasks', url_for('admin_tasks.index'), 'calendar', endpoint.startswith('admin_tasks.')) }}
+            <p class="admin-nav-group">Operations</p>
+            {{ item('Programs', url_for('manage_programs'), 'layers', endpoint == 'manage_programs') }}
+            {{ item('Classes & teams', url_for('manage_teams'), 'people', endpoint in ['manage_teams', 'learning.assign']) }}
+            {{ item('Sessions & attendance', url_for('admin_sessions'), 'calendar', endpoint in ['admin_sessions', 'team_session', 'manage_attendance']) }}
+            {{ item('New school group', url_for('learning.new_group'), 'plus', endpoint == 'learning.new_group') }}
+            {{ item('Private assignments', url_for('learning.new_private'), 'calendar', endpoint == 'learning.new_private') }}
+            {{ item('School notifications', url_for('notifications.compose'), 'calendar', endpoint == 'notifications.compose') }}
+            {{ item('Workbook imports', url_for('roster_imports.index'), 'layers', endpoint.startswith('roster_imports.')) }}
+            {{ item('Participant placement', url_for('roster_imports.placement'), 'people', endpoint == 'roster_imports.placement') }}
+            <p class="admin-nav-group">People</p>
+            {{ item('Participants & progress', url_for('admin_people', role='student'), 'people', (endpoint == 'admin_people' and request.args.get('role') == 'student') or endpoint in ['evaluate_student', 'view_student_evaluations', 'view_evaluation', 'learning.progression', 'learning.reports', 'learning.report']) }}
+            {{ item('Instructors', url_for('admin_people', role='instructor'), 'people', endpoint == 'admin_people' and request.args.get('role') == 'instructor') }}
+            {{ item('User directory', url_for('admin_people'), 'people', (endpoint == 'admin_people' and request.args.get('role') not in ['student', 'instructor']) or endpoint in ['edit_user', 'register']) }}
+            {{ item('Staff onboarding & documents', url_for('staff_portal.staff_admin'), 'people', endpoint == 'staff_portal.staff_admin') }}
+            {{ item('Staff availability', url_for('staff_portal.admin_availability'), 'calendar', endpoint == 'staff_portal.admin_availability') }}
+            <p class="admin-nav-group">Teaching & safety</p>
+            {{ item('Teaching hub', url_for('learning.hub'), 'book', endpoint == 'learning.hub') }}
+            {{ item('Weekly training', url_for('learning.training'), 'calendar', endpoint in ['learning.training', 'learning.week']) }}
+            {{ item('STEP / RIP skills', url_for('manage_curriculum'), 'layers', endpoint == 'manage_curriculum') }}
+            {{ item('Instructor manual', url_for('learning.manual'), 'book', endpoint == 'learning.manual') }}
+            {{ item('Incidents', url_for('learning.incidents'), 'shield', endpoint == 'learning.incidents') }}
+        </nav>
+    </details>
+</aside>

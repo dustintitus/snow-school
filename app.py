@@ -1,6 +1,6 @@
 import os
 import secrets
-from flask import Flask, render_template, request, redirect, url_for, flash, session, abort, make_response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort, make_response, jsonify, g
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, AppSetting, User, ParentStudent, MediaConsent, ParticipantMedia, Evaluation, Program, ProgramProfile, Enrollment, CurriculumLevel, CurriculumSkill, Team, Attendance, ClassSession
@@ -40,6 +40,20 @@ def inject_csrf_token():
     return {'csrf_token': token}
 
 @app.before_request
+def enforce_native_staff_context():
+    # Every WebView request carries this marker, including restored cookies and fetches.
+    g.native_portal = 'SnowSchoolCoach/' in request.headers.get('User-Agent', '')
+    if g.native_portal and current_user.is_authenticated and current_user.user_type not in {'admin', 'instructor'}:
+        if request.endpoint not in {'logout', 'static', 'privacy', 'support'}:
+            if request.path.startswith('/api/'):
+                abort(403)
+            return render_template('native_web_only.html'), 403
+
+@app.context_processor
+def native_portal_context():
+    return {'native_portal': getattr(g, 'native_portal', False)}
+
+@app.before_request
 def protect_state_changes():
     """Reject forged state-changing requests before route handlers run."""
     if request.method == 'POST' and app.config.get('CSRF_ENABLED', True):
@@ -51,6 +65,9 @@ def protect_state_changes():
 @app.after_request
 def prevent_search_indexing(response):
     """Keep the private preview out of search indexes until launch."""
+    response.vary.add('User-Agent')
+    if current_user.is_authenticated or request.path.startswith('/api/notifications'):
+        response.headers['Cache-Control'] = 'private, no-store'
     response.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive, nosnippet'
     return response
 
@@ -67,22 +84,29 @@ def safe_next_url(target):
     return target
 
 def instructor_owns_team(team):
-    return current_user.is_authenticated and current_user.user_type == 'instructor' and team.instructor_id == current_user.id
+    from operations import daily_instructor
+    from learning import today
+    # Access expires with the coverage day, even if a historical date is requested.
+    return current_user.is_authenticated and current_user.user_type == 'instructor' and daily_instructor(team, today()) == current_user.id
 
 def instructor_can_access_student(student):
     """Team ownership is authoritative; instructor_id remains a legacy fallback."""
     if current_user.user_type != 'instructor' or student.user_type != 'student':
         return False
+    from staff_portal import private_access
     return bool(
-        (student.team and student.team.instructor_id == current_user.id)
-        or student.instructor_id == current_user.id
+        (student.team and instructor_owns_team(student.team))
+        or (not student.team and student.instructor_id == current_user.id)
+        or any(e.team and e.season == CURRENT_SEASON and e.status in ('registered', 'active', 'completed') and instructor_owns_team(e.team) for e in student.enrollments)
+        or private_access(student.id, current_user.id)
     )
 
 SESSION_STATUSES = ('not_started', 'checked_in', 'on_hill', 'break', 'completed')
 CURRENT_SEASON = os.environ.get('SNOW_SCHOOL_SEASON', '2026-2027')
-MEDIA_CONSENT_VERSION = '2026-09-v1'
+MEDIA_CONSENT_VERSION = '2026-10-photo-video-v2'
 MAX_CAPTURE_BYTES = 3 * 1024 * 1024
-ALLOWED_CAPTURE_TYPES = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp'}
+app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024
+ALLOWED_CAPTURE_TYPES = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'video/webm': '.webm', 'video/mp4': '.mp4'}
 
 def parent_missing_media_consent(parent):
     acknowledged_ids = {
@@ -117,7 +141,7 @@ def can_access_participant(student):
 def require_parent_media_acknowledgment():
     if not current_user.is_authenticated or current_user.user_type != 'parent':
         return None
-    if request.endpoint in {'media_consent', 'logout', 'static'}:
+    if getattr(g, 'native_portal', False) or request.endpoint in {'media_consent', 'logout', 'static', 'privacy', 'support'}:
         return None
     if parent_missing_media_consent(current_user):
         return redirect(url_for('media_consent'))
@@ -907,6 +931,14 @@ def health():
             'database': 'unavailable'
         }, 500
 
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+@app.route('/support')
+def support():
+    return render_template('support.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     next_url = safe_next_url(request.values.get('next'))
@@ -929,10 +961,26 @@ def login():
             if user:
                 password_valid = check_password_hash(user.password_hash, password)
                 if password_valid:
+                    from notification_models import PushDevice
+                    previous_key = session.pop('push_session', None)
+                    if previous_key:
+                        PushDevice.query.filter_by(session_key=previous_key).update({'active': False})
+                        db.session.commit()
+                    from staff_portal import active_staff, profile_for
+                    if user.user_type == 'instructor' and not active_staff(user.id):
+                        flash('This instructor account is inactive. Contact the school.', 'error')
+                        return render_template('login.html', next_url=next_url)
                     login_user(user)
+                    if getattr(g, 'native_portal', False):
+                        session.permanent = True
+                    if getattr(g, 'native_portal', False) and user.user_type not in {'admin', 'instructor'}:
+                        return redirect(url_for('dashboard'))
                     flash('Login successful!', 'success')
                     if user.user_type == 'parent' and parent_missing_media_consent(user):
                         return redirect(url_for('media_consent'))
+                    if user.user_type == 'instructor' and not profile_for(user.id).onboarding_seen_at:
+                        db.session.commit()
+                        return redirect(url_for('staff_portal.onboarding_page'))
                     return redirect(next_url or url_for('dashboard'))
                 else:
                     flash('Invalid username or password', 'error')
@@ -948,9 +996,14 @@ def login():
 @app.route('/logout', methods=['POST'])
 @login_required
 def logout():
+    from notification_models import PushDevice
+    key = session.pop('push_session', None)
+    if key:
+        PushDevice.query.filter_by(user_id=current_user.id, session_key=key).update({'active': False})
+        db.session.commit()
     logout_user()
     flash('Logged out successfully', 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('login') if getattr(g, 'native_portal', False) else url_for('index'))
 
 @app.route('/parent/media-consent', methods=['GET', 'POST'])
 @login_required
@@ -989,19 +1042,19 @@ def dashboard():
     user_type = current_user.user_type
     
     if user_type == 'admin':
-        users = User.query.all()
-        dashboard_data = build_admin_dashboard()
-        return render_template('dashboard_admin.html', users=users, dashboard_data=dashboard_data)
+        return render_template('dashboard_admin.html', season=CURRENT_SEASON)
     elif user_type == 'instructor':
         # Get students from instructor's teams
-        instructor_teams = Team.query.filter_by(instructor_id=current_user.id).all()
+        from operations import assigned_teams
+        from learning import today as school_today
+        instructor_teams = assigned_teams(current_user.id, school_today())
         team_ids = [team.id for team in instructor_teams]
         
         students = []
         if team_ids:
             students = User.query.filter(
                 User.user_type == 'student',
-                User.team_id.in_(team_ids)
+                db.or_(User.team_id.in_(team_ids), User.id.in_(db.session.query(Enrollment.student_id).filter(Enrollment.team_id.in_(team_ids), Enrollment.season == CURRENT_SEASON, Enrollment.status.in_(('registered', 'active', 'completed')))))
             ).all()
         
         recent_evaluations = Evaluation.query.filter_by(
@@ -1013,7 +1066,7 @@ def dashboard():
             team_activity[team.id] = {
                 'attendance_count': Attendance.query.filter_by(team_id=team.id, session_date=today).count(),
                 'latest_evaluation': Evaluation.query.join(User, Evaluation.student_id == User.id).filter(
-                    User.team_id == team.id
+                    User.id.in_([s.id for s in team.participants])
                 ).order_by(Evaluation.created_at.desc()).first()
             }
         return render_template('dashboard_instructor.html', students=students, evaluations=recent_evaluations, teams=instructor_teams or [], today=today, team_activity=team_activity)
@@ -1030,19 +1083,64 @@ def dashboard():
         evaluations = Evaluation.query.filter_by(student_id=current_user.id).order_by(Evaluation.level).all()
         return render_template('dashboard_student.html', evaluations=evaluations)
 
+@app.route('/admin/overview')
+@login_required
+def admin_overview():
+    if not is_admin():
+        abort(403)
+    return render_template('admin/overview.html', dashboard_data=build_admin_dashboard())
+
+
+@app.route('/admin/people')
+@login_required
+def admin_people():
+    if not is_admin():
+        abort(403)
+    role = request.args.get('role', '')
+    if role not in ('', 'student', 'instructor', 'parent', 'admin'):
+        abort(400)
+    query = request.args.get('q', '').strip()[:100]
+    users = User.query
+    if role:
+        users = users.filter_by(user_type=role)
+    if query:
+        pattern = '%' + query.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_') + '%'
+        users = users.filter(db.or_(User.full_name.ilike(pattern, escape='\\'), User.username.ilike(pattern, escape='\\')))
+    return render_template('admin/people.html', users=users.order_by(User.full_name).all(), role=role, query=query)
+
+
+@app.route('/admin/sessions')
+@login_required
+def admin_sessions():
+    if not is_admin():
+        abort(403)
+    try:
+        session_date = parse_session_date(request.args.get('date'))
+    except ValueError:
+        flash('Choose a valid session date.', 'error')
+        return redirect(url_for('admin_sessions'))
+    teams = Team.query.order_by(Team.name).all()
+    return render_template('admin/sessions.html', teams=teams, session_date=session_date)
+
+
 @app.route('/coach')
 @login_required
 def coach_today():
-    """Glove-friendly daily operations view for instructors."""
+    """Task-based daily operations view shared by mobile and web."""
+    from learning import today as school_today
     if current_user.user_type != 'instructor':
         return redirect(url_for('dashboard'))
     try:
-        selected_date = parse_session_date(request.args.get('date'))
+        selected_date = parse_session_date(request.args.get('date'), fallback=school_today())
     except ValueError:
         flash('Invalid session date', 'error')
         return redirect(url_for('coach_today'))
 
-    teams = Team.query.filter_by(instructor_id=current_user.id).order_by(Team.name).all()
+    from coaching import teaching_context, evaluation_weeks, evaluation_availability
+    from operations import assigned_teams
+    from learning_models import PrivateLesson
+    teams = assigned_teams(current_user.id, selected_date)
+    lessons = PrivateLesson.query.filter(PrivateLesson.instructor_id == current_user.id, PrivateLesson.starts_at >= datetime.combine(selected_date, datetime.min.time()), PrivateLesson.starts_at < datetime.combine(selected_date + timedelta(days=1), datetime.min.time())).order_by(PrivateLesson.starts_at).all()
     cards = []
     for team in teams:
         records = Attendance.query.filter_by(team_id=team.id, session_date=selected_date).all()
@@ -1050,10 +1148,54 @@ def coach_today():
         cards.append({
             'team': team,
             'session': session_record,
+            'teaching': teaching_context(team.program, selected_date, evaluation_weeks(team.program)),
+            'evaluation': evaluation_availability(team.program),
             'recorded': len(records),
             'present': sum(1 for record in records if record.attended),
         })
-    return render_template('coach_today.html', cards=cards, selected_date=selected_date)
+    from learning_models import SchoolGroup
+    from staff_portal import onboarding
+    school_ids = {row.team_id for row in SchoolGroup.query.all()}
+    progress = onboarding(current_user.id)
+    db.session.commit()
+    return render_template('coach_today.html', cards=cards, selected_date=selected_date, lessons=lessons, school_ids=school_ids, progress=progress)
+
+@app.route('/teams/<int:team_id>/lesson-plan')
+@login_required
+def coach_lesson_plan(team_id):
+    from coaching import teaching_context, evaluation_weeks, evaluation_availability
+    from learning import CARDS, today as school_today
+    from learning_models import SkillObservation
+    team = db.get_or_404(Team, team_id)
+    if not (is_admin() or instructor_owns_team(team)):
+        abort(403)
+    try:
+        selected_date = parse_session_date(request.args.get('date'), fallback=school_today())
+    except ValueError:
+        abort(400, description='Choose a valid lesson date.')
+    context = teaching_context(team.program, selected_date, evaluation_weeks(team.program))
+    context['evaluation'] = evaluation_availability(team.program)['enabled']
+    key = request.args.get('card', '')
+    if key and key not in CARDS:
+        abort(400, description='Choose an available progression card.')
+    # Only use evidence available as of the date being planned.
+    observations = SkillObservation.query.join(User, User.id == SkillObservation.student_id).filter(
+        User.id.in_([s.id for s in team.participants]), SkillObservation.season == CURRENT_SEASON,
+        SkillObservation.session_date <= selected_date,
+    ).order_by(SkillObservation.session_date.desc(), SkillObservation.id.desc()).all()
+    latest = {}
+    for row in observations:
+        latest.setdefault((row.student_id, row.card_key, row.skill_id), row)
+    working_keys = list(dict.fromkeys(row.card_key for row in latest.values() if row.status != 'mastered' and row.card_key in CARDS))
+    if not key and len(working_keys) == 1:
+        key = working_keys[0]
+    card = CARDS.get(key)
+    focus_rows = [row for row in latest.values() if row.card_key == key and row.status != 'mastered']
+    skill_ids = {row.skill_id for row in focus_rows}
+    skills = [row for row in card['rows'] if row['id'] in skill_ids] if card else []
+    return render_template('coach_lesson_plan.html', team=team, selected_date=selected_date,
+                           teaching=context, curriculum_cards=CARDS, card=card, card_key=key,
+                           skills=skills, working_keys=working_keys, guidance_sections=__import__('coaching').guidance_sections(card['guidance']) if card else [])
 
 @app.route('/register', methods=['GET', 'POST'])
 @login_required
@@ -1070,6 +1212,18 @@ def register():
         user_type = request.form.get('user_type')
         instructor_id = request.form.get('instructor_id')
         team_id = request.form.get('team_id')
+        selected_program = None
+        if user_type == 'student' and request.form.get('program_id'):
+            from operations import setting
+            raw_program = request.form['program_id']
+            if not raw_program.isdigit(): abort(400)
+            selected_program = db.get_or_404(Program, int(raw_program))
+            placement = setting(f'program-operations:{selected_program.id}', {})
+            if not team_id and placement.get('placement') == 'automatic':
+                default_team = db.get_or_404(Team, placement['default_team_id'])
+                if default_team.program_id != selected_program.id: abort(400)
+                team_id = str(default_team.id)
+            if team_id and db.get_or_404(Team, int(team_id)).program_id != selected_program.id: abort(400)
         participates_skier = request.form.get('participates_skier') == 'on'
         participates_snowboarder = request.form.get('participates_snowboarder') == 'on'
         participates_snow_stars = request.form.get('participates_snow_stars') == 'on'
@@ -1117,7 +1271,13 @@ def register():
             update_student_participation_from_team(new_user)
             sync_student_enrollment(new_user)
         
+        if selected_program and not team_id:
+            db.session.add(Enrollment(student_id=new_user.id, program_id=selected_program.id, season=CURRENT_SEASON, status='registered'))
         db.session.commit()
+        if user_type == 'instructor':
+            from staff_portal import send_invitation
+            status = send_invitation(new_user)
+            flash('Welcome email accepted by the mail server.' if status == 'accepted' else 'Account created; welcome email not sent. Check mail configuration in staff onboarding.', 'success' if status == 'accepted' else 'error')
         flash('User created successfully', 'success')
         return redirect(url_for('dashboard'))
     
@@ -1239,7 +1399,9 @@ def parent_child_evaluations(student_id):
         return redirect(url_for('dashboard'))
     evaluations = Evaluation.query.filter_by(student_id=student.id).order_by(Evaluation.created_at.desc()).all()
     media_items = ParticipantMedia.query.filter_by(student_id=student.id).order_by(ParticipantMedia.created_at.desc()).all()
-    return render_template('parent_child_evaluations.html', student=student, evaluations=evaluations, media_items=media_items)
+    from learning_models import ParticipantReport
+    reports = ParticipantReport.query.filter_by(student_id=student.id).filter(ParticipantReport.issued_at.isnot(None)).order_by(ParticipantReport.id.desc()).all()
+    return render_template('parent_child_evaluations.html', student=student, evaluations=evaluations, media_items=media_items, reports=reports)
 
 @app.route('/admin/view_student_evaluations/<int:student_id>')
 @login_required
@@ -1270,6 +1432,10 @@ def evaluate_student(student_id):
         flash('You can only evaluate your assigned students', 'error')
         return redirect(url_for('dashboard'))
     
+    from coaching import evaluation_availability
+    if not student.team or not evaluation_availability(student.team.program)['enabled']:
+        abort(403, description='Evaluations are closed. Your administrator sets the evaluation weeks for this program.')
+
     if request.method == 'POST':
         sport_type = request.form.get('sport_type')
         
@@ -1463,7 +1629,8 @@ def manage_programs():
     
     programs = Program.query.order_by(Program.name).all()
     dashboard_data = build_admin_dashboard()
-    return render_template('manage_programs.html', programs=programs, dashboard_data=dashboard_data, current_season=CURRENT_SEASON)
+    from coaching import evaluation_weeks
+    return render_template('manage_programs.html', evaluation_weeks=evaluation_weeks, programs=programs, dashboard_data=dashboard_data, current_season=CURRENT_SEASON)
 
 @app.route('/admin/teams')
 @login_required
@@ -1489,7 +1656,11 @@ def create_team():
     instructor_id = int(request.form.get('instructor_id'))
     team_type = request.form.get('team_type', 'class')  # 'class' for STEP/RIP, 'team' for Snow Stars
     
-    team = Team(name=name, program_id=program_id, instructor_id=instructor_id, team_type=team_type)
+    from operations import qualification_check
+    instructor = db.get_or_404(User, int(instructor_id))
+    if instructor.user_type != 'instructor': abort(400)
+    team = Team(name=name, program_id=program_id, instructor_id=instructor.id, team_type=team_type)
+    qualification_check(team, instructor, request.form.get('override_reason', '').strip())
     db.session.add(team)
     db.session.commit()
     flash('Team created successfully', 'success')
@@ -1528,6 +1699,30 @@ def create_program():
         return redirect(url_for('manage_programs'))
     db.session.commit()
     flash('Program created successfully', 'success')
+    return redirect(url_for('manage_programs'))
+
+@app.route('/admin/programs/<int:program_id>/evaluation-schedule', methods=['POST'])
+@login_required
+def update_evaluation_schedule(program_id):
+    if not is_admin():
+        abort(403)
+    program = db.get_or_404(Program, program_id)
+    raw = request.form.get('evaluation_weeks', '').strip()
+    try:
+        weeks = sorted(set(int(value.strip()) for value in raw.split(','))) if raw else []
+        if any(week < 1 or week > 53 for week in weeks):
+            raise ValueError
+    except ValueError:
+        flash('Enter week numbers from 1 to 53, separated by commas, or leave blank to disable evaluations.', 'error')
+        return redirect(url_for('manage_programs'))
+    key = f'evaluation-weeks:{program.id}'
+    row = db.session.get(AppSetting, key)
+    if row is None:
+        row = AppSetting(key=key)
+        db.session.add(row)
+    row.value = ','.join(map(str, weeks))
+    db.session.commit()
+    flash('Evaluation schedule saved.', 'success')
     return redirect(url_for('manage_programs'))
 
 @app.route('/admin/update_program/<int:program_id>', methods=['POST'])
@@ -1586,13 +1781,22 @@ def update_team(team_id):
     
     team = Team.query.get_or_404(team_id)
     old_program_id = team.program_id
+    old_instructor_id = team.instructor_id
     team.name = request.form.get('name')
     team.program_id = int(request.form.get('program_id'))
     team.instructor_id = int(request.form.get('instructor_id'))
     team.team_type = request.form.get('team_type')
     
+    from operations import qualification_check
+    instructor = db.get_or_404(User, team.instructor_id)
+    if instructor.user_type != 'instructor': abort(400)
+    qualification_check(team, instructor, request.form.get('override_reason', '').strip())
+    from learning_models import SchoolGroup, GroupAssignment
+    if old_instructor_id != team.instructor_id and db.session.get(SchoolGroup, team.id):
+        db.session.add(GroupAssignment(team_id=team.id, instructor_id=team.instructor_id, assigned_by=current_user.id))
+
     # If program changed, update participation flags for all students in this team
-    for student in team.students:
+    for student in team.participants:
         # Keep legacy instructor assignment synchronized with team ownership.
         student.instructor_id = team.instructor_id
         if old_program_id != team.program_id:
@@ -1613,8 +1817,15 @@ def delete_team(team_id):
     
     team = Team.query.get_or_404(team_id)
     
+    # Preserve teaching records and avoid orphaned operational history.
+    from learning_models import SchoolGroup, GroupAssignment, Incident
+    if (db.session.get(SchoolGroup, team.id)
+            or GroupAssignment.query.filter_by(team_id=team.id).first()
+            or Incident.query.filter_by(team_id=team.id).first()):
+        flash('Cannot delete a team with school-group or incident history', 'error')
+        return redirect(url_for('manage_teams'))
     # Check if team has students
-    if team.students:
+    if team.participants:
         flash('Cannot delete team that has students assigned', 'error')
         return redirect(url_for('manage_teams'))
     
@@ -1640,7 +1851,7 @@ def team_session(team_id):
         flash('Invalid session date', 'error')
         return redirect(url_for('team_session', team_id=team_id))
 
-    students = User.query.filter_by(team_id=team_id, user_type='student').order_by(User.full_name).all()
+    students = team.participants
     attendance = {
         record.student_id: record
         for record in Attendance.query.filter_by(team_id=team_id, session_date=session_date).all()
@@ -1653,15 +1864,17 @@ def team_session(team_id):
         latest_evaluations[student.id] = Evaluation.query.filter_by(student_id=student.id).order_by(Evaluation.created_at.desc()).first()
         completed_levels[student.id] = Evaluation.query.filter_by(student_id=student.id).count()
         media_consent[student.id] = student_has_media_consent(student)
-        latest_media[student.id] = ParticipantMedia.query.filter_by(student_id=student.id).order_by(ParticipantMedia.created_at.desc()).first()
+        latest_media[student.id] = ParticipantMedia.query.filter_by(student_id=student.id).filter(ParticipantMedia.content_type.like('image/%')).order_by(ParticipantMedia.created_at.desc()).first()
 
     class_session = ClassSession.query.filter_by(team_id=team_id, session_date=session_date).first()
+    from coaching import evaluation_availability
 
     return render_template(
         'team_session.html', team=team, students=students, session_date=session_date,
         attendance=attendance, latest_evaluations=latest_evaluations, completed_levels=completed_levels,
         media_consent=media_consent, latest_media=latest_media,
-        class_session=class_session, session_statuses=SESSION_STATUSES
+        class_session=class_session, session_statuses=SESSION_STATUSES,
+        evaluation_enabled=evaluation_availability(team.program)['enabled']
     )
 
 @app.route('/participants/<int:student_id>/media', methods=['POST'])
@@ -1673,22 +1886,32 @@ def upload_participant_media(student_id):
     if not student_has_media_consent(student):
         return jsonify({'error': 'Current parent media consent is required'}), 403
 
+    participants = {student.id: student}
+    for raw_id in request.form.getlist('student_ids'):
+        if not raw_id.isdigit(): abort(400)
+        participant = User.query.filter_by(id=int(raw_id), user_type='student').first_or_404()
+        if not instructor_can_access_student(participant) or not student_has_media_consent(participant):
+            return jsonify({'error': 'Every selected participant needs instructor access and current parent consent'}), 403
+        participants[participant.id] = participant
+    if len(participants) > 40: abort(400)
     capture = request.files.get('media')
     if capture is None or not capture.filename:
-        return jsonify({'error': 'No camera image received'}), 400
+        return jsonify({'error': 'No camera capture received'}), 400
     content_type = capture.mimetype.lower()
     if content_type not in ALLOWED_CAPTURE_TYPES:
-        return jsonify({'error': 'Use a JPEG, PNG, or WebP image'}), 400
+        return jsonify({'error': 'Use a JPEG, PNG, WebP photo or WebM/MP4 video'}), 400
     image_bytes = capture.read(MAX_CAPTURE_BYTES + 1)
     if not image_bytes or len(image_bytes) > MAX_CAPTURE_BYTES:
-        return jsonify({'error': 'Image must be smaller than 3 MB'}), 400
+        return jsonify({'error': 'Capture must be smaller than 3 MB'}), 400
     signatures = {
         'image/jpeg': image_bytes.startswith(b'\xff\xd8\xff'),
         'image/png': image_bytes.startswith(b'\x89PNG\r\n\x1a\n'),
         'image/webp': image_bytes.startswith(b'RIFF') and image_bytes[8:12] == b'WEBP',
+        'video/webm': image_bytes.startswith(b'\x1a\x45\xdf\xa3'),
+        'video/mp4': len(image_bytes) > 12 and image_bytes[4:8] == b'ftyp',
     }
     if not signatures[content_type]:
-        return jsonify({'error': 'The uploaded file is not a valid image'}), 400
+        return jsonify({'error': 'The uploaded file does not match its media type'}), 400
 
     filename = f'participants/{student.id}/{date.today().isoformat()}-{secrets.token_hex(8)}{ALLOWED_CAPTURE_TYPES[content_type]}'
     try:
@@ -1696,23 +1919,21 @@ def upload_participant_media(student_id):
             filename, image_bytes, access='private', content_type=content_type,
             cache_control_max_age=60,
         )
-        media = ParticipantMedia(
-            student_id=student.id,
-            uploader_id=current_user.id,
-            blob_url=blob.url,
-            blob_pathname=blob.pathname,
-            content_type=content_type,
-            byte_size=len(image_bytes),
-            caption=request.form.get('caption', '').strip()[:240] or None,
-            created_at=datetime.now(UTC),
-        )
-        db.session.add(media)
+        media_rows = []
+        for participant in participants.values():
+            media = ParticipantMedia(student_id=participant.id, uploader_id=current_user.id,
+                blob_url=blob.url, blob_pathname=blob.pathname, content_type=content_type,
+                byte_size=len(image_bytes), caption=request.form.get('caption', '').strip()[:240] or None,
+                created_at=datetime.now(UTC))
+            db.session.add(media)
+            media_rows.append(media)
         db.session.commit()
     except Exception:
         db.session.rollback()
         app.logger.exception('Participant media upload failed')
-        return jsonify({'error': 'The image could not be saved. Please try again.'}), 503
-    return jsonify({'ok': True, 'media_id': media.id, 'view_url': url_for('view_participant_media', media_id=media.id)})
+        return jsonify({'error': 'The capture could not be saved. Please try again.'}), 503
+    media = media_rows[0]
+    return jsonify({'ok': True, 'media_id': media.id, 'participant_count': len(media_rows), 'view_url': url_for('view_participant_media', media_id=media.id)})
 
 @app.route('/participant-media/<int:media_id>')
 @login_required
@@ -1747,6 +1968,9 @@ def update_session_status(team_id):
     except ValueError:
         flash('Please choose a valid session date', 'error')
         return redirect(url_for('team_session', team_id=team_id))
+    from operations import daily_instructor
+    if current_user.user_type == 'instructor' and daily_instructor(team, session_date) != current_user.id:
+        abort(403)
     status = request.form.get('status', '')
     if status not in SESSION_STATUSES:
         abort(400, description='Invalid class status')
@@ -1773,12 +1997,12 @@ def manage_attendance(team_id):
     team = Team.query.get_or_404(team_id)
     
     # Check if instructor has access to this team
-    if current_user.user_type == 'instructor' and team.instructor_id != current_user.id:
+    if current_user.user_type == 'instructor' and not instructor_owns_team(team):
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
     
     # Get students in this team
-    students = User.query.filter_by(team_id=team_id, user_type='student').all()
+    students = team.participants
     
     # Get recent attendance records
     attendance_records = Attendance.query.filter_by(team_id=team_id).order_by(Attendance.session_date.desc()).limit(50).all()
@@ -1796,7 +2020,7 @@ def record_attendance(team_id):
     team = Team.query.get_or_404(team_id)
     
     # Check if instructor has access to this team
-    if current_user.user_type == 'instructor' and team.instructor_id != current_user.id:
+    if current_user.user_type == 'instructor' and not instructor_owns_team(team):
         flash('Access denied', 'error')
         return redirect(url_for('dashboard'))
     
@@ -1805,6 +2029,9 @@ def record_attendance(team_id):
     except ValueError:
         flash('Please choose a valid session date', 'error')
         return redirect(url_for('team_session', team_id=team_id))
+    from operations import daily_instructor
+    if current_user.user_type == 'instructor' and daily_instructor(team, session_date) != current_user.id:
+        abort(403)
     if team.program.start_date and session_date < team.program.start_date:
         flash('Session date is before the program begins', 'error')
         return redirect(url_for('team_session', team_id=team_id, date=session_date.isoformat()))
@@ -1813,7 +2040,7 @@ def record_attendance(team_id):
         return redirect(url_for('team_session', team_id=team_id, date=session_date.isoformat()))
     
     # Record attendance for each student
-    for student in team.students:
+    for student in team.participants:
         attended = request.form.get(f'attended_{student.id}') == 'on'
         notes = request.form.get(f'notes_{student.id}', '')
         
@@ -1844,6 +2071,29 @@ def record_attendance(team_id):
     if request.form.get('return_to') == 'session':
         return redirect(url_for('team_session', team_id=team_id, date=session_date.isoformat()))
     return redirect(url_for('manage_attendance', team_id=team_id))
+
+from roster_imports import bp as roster_imports_blueprint
+app.register_blueprint(roster_imports_blueprint)
+
+from staff_portal import bp as staff_portal_blueprint
+app.register_blueprint(staff_portal_blueprint)
+
+from availability_sync import bp as availability_sync_blueprint
+app.register_blueprint(availability_sync_blueprint)
+
+from operations import bp as operations_blueprint
+app.register_blueprint(operations_blueprint)
+
+from learning import bp as learning_blueprint
+app.register_blueprint(learning_blueprint)
+from notifications import bp as notifications_blueprint
+app.register_blueprint(notifications_blueprint)
+
+from admin_tasks import bp as admin_tasks_blueprint
+app.register_blueprint(admin_tasks_blueprint)
+
+from admin_assistant import bp as admin_assistant_blueprint
+app.register_blueprint(admin_assistant_blueprint)
 
 if __name__ == '__main__':
     # Only run init_db in development

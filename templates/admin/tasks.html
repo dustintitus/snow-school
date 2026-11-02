@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% macro task_fields(task, suffix) %}
+<input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+<label for="title-{{ suffix }}">Task</label><input id="title-{{ suffix }}" name="title" value="{{ task.title }}" maxlength="160" required>
+<label for="notes-{{ suffix }}">Notes / checklist</label><textarea id="notes-{{ suffix }}" name="notes" maxlength="6000" rows="3">{{ task.notes }}</textarea>
+<div class="task-options">
+<label>Owner<select name="owner_id"><option value="">Unassigned</option>{% for admin in admins %}<option value="{{ admin.id }}" {% if task.owner_id|default(none) == admin.id %}selected{% endif %}>{{ admin.full_name }}</option>{% endfor %}</select></label>
+<label>Due date<input type="date" name="due_date" value="{{ task.due_date|default('', true) }}"></label>
+<label>Priority<select name="priority">{% for value, label in priorities.items() %}<option value="{{ value }}" {% if task.priority|default('normal') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<label>Status<select name="status">{% for value, label in statuses.items() %}<option value="{{ value }}" {% if task.status|default('todo') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+</div>
+{% endmacro %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tasks.css') }}">
+<div class="task-page">
+<h1>Admin tasks</h1><p>Organize follow-ups, assign an admin owner, and track progress. Completing a task records its status; the underlying school work is performed separately.</p>
+<details class="task-card" {% if draft.title %}open{% endif %}><summary>Create a task</summary><form method="post">{{ task_fields(draft, 'new') }}<button class="btn" type="submit">Create task</button></form></details>
+<form class="task-filters" method="get"><label>Show<select name="status"><option value="open" {% if status == 'open' %}selected{% endif %}>Open tasks</option><option value="all" {% if status == 'all' %}selected{% endif %}>All tasks</option>{% for value,label in statuses.items() %}<option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><label>Owner<select name="owner"><option value="all">All owners</option><option value="mine" {% if owner == 'mine' %}selected{% endif %}>Assigned to me</option><option value="unassigned" {% if owner == 'unassigned' %}selected{% endif %}>Unassigned</option></select></label><button type="submit" class="btn">Filter</button></form>
+<p>{{ tasks|length }} task{{ '' if tasks|length == 1 else 's' }} shown</p>
+{% for task in tasks %}<article class="task-card"><h2>{{ task.title }}</h2><p>{{ statuses[task.status] }} · {{ priorities[task.priority] }} priority · {{ task.owner.full_name if task.owner else 'Unassigned' }}{% if task.due_date %} · Due {{ task.due_date }}{% if task.due_date < today and task.status != 'done' %} <strong>Overdue</strong>{% endif %}{% endif %}</p>{% if task.notes %}<p class="task-notes">{{ task.notes }}</p>{% endif %}<details><summary>Edit task / update progress</summary><form method="post" action="{{ url_for('admin_tasks.update', task_id=task.id) }}">{{ task_fields(task, task.id) }}<button class="btn" type="submit">Save task</button></form></details></article>{% else %}<p>No tasks match these filters. Create a task to start organizing work.</p>{% endfor %}
+</div>
+{% endblock %}

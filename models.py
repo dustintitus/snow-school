@@ -97,6 +97,15 @@ class Team(db.Model):
     instructor = db.relationship('User', foreign_keys=[instructor_id], backref='managed_teams')
     students = db.relationship('User', foreign_keys='User.team_id', backref='team')
     
+    @property
+    def participants(self):
+        from app import CURRENT_SEASON
+        enrollment_ids = db.session.query(Enrollment.student_id).filter(
+            Enrollment.team_id == self.id, Enrollment.season == CURRENT_SEASON,
+            Enrollment.status.in_(('registered', 'active', 'completed')))
+        return User.query.filter(User.user_type == 'student', db.or_(
+            User.team_id == self.id, User.id.in_(enrollment_ids))).order_by(User.full_name).all()
+
     def __repr__(self):
         return f'<Team {self.name}>'
 
@@ -293,3 +302,17 @@ class Evaluation(db.Model):
     
     def __repr__(self):
         return f'<Evaluation {self.id}>'
+
+
+class AdminTask(db.Model):
+    """Shared admin work queue; no automatic execution or notifications."""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(160), nullable=False)
+    notes = db.Column(db.Text, nullable=False, default='')
+    status = db.Column(db.String(20), nullable=False, default='todo')
+    priority = db.Column(db.String(10), nullable=False, default='normal')
+    due_date = db.Column(db.Date)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    owner = db.relationship('User', foreign_keys=[owner_id])

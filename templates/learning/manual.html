@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Instructor manual | Snow School{% endblock %}
+{% block content %}
+{% include 'learning/_nav.html' %}
+<p class="eyebrow">Reference library · 2025/2026</p><h1>Instructor manual</h1>
+<p>Page references match the supplied 38-page manual. This is a prior-season reference; confirm current contacts and policies with your supervisor. The revised staff manual is awaiting Karen’s update.</p>
+<p><a href="{{ url_for('learning.app_guide') }}">App training &amp; getting started →</a></p>
+<form method="GET" class="learning-filter"><label>Search the manual<input type="search" name="q" value="{{ query }}" placeholder="Try: lift, meeting, injury"></label><button class="btn btn-primary">Search</button></form>
+{% for page in pages %}
+{% if not query or query.lower() in page.text.lower() %}
+<details class="card manual-page" id="page-{{ page.page }}" {% if query or request.args.get('page','')==page.page|string %}open{% endif %}>
+<summary>Page {{ page.page }} · {{ page.text.split('\n')[0] }}</summary>
+{% if page.page in (2,3) %}
+<nav aria-label="Manual contents page {{ page.page }}"><ul>
+{% for section in pages if section.page > 3 %}<li><a href="{{ url_for('learning.manual',page=section.page) }}#page-{{ section.page }}">{{ section.text.split('\n')[0] }} · Page {{ section.page }}</a></li>{% endfor %}
+</ul></nav>
+{% elif page.page == 7 %}
+<h2>Your leadership team</h2><p>The recreation department includes Guest Services, Alpine Rentals, HV Sports Retail, Nordic Centre and Snow School. Teams work together to support guests.</p>
+<p class="source-note">Roles below come from the 2025/26 manual. Confirm the current leadership team with your supervisor.</p>
+<dl class="manual-roles">
+<dt>General Manager</dt><dd>Ben Rugman</dd><dt>Snow School Manager</dt><dd>Karen Hoffman</dd><dt>Snow School Admin Supervisor</dt><dd>Jennifer Perry</dd><dt>Technical Development Coordinator</dt><dd>Vince Chabot</dd><dt>Weeknight Program Supervisor</dt><dd>Dave Nicoletta</dd><dt>Weekend Program Supervisor</dt><dd>Ryan Dowling</dd>
+</dl>
+{% elif page.page == 8 %}
+<h2>Get ready for your first day</h2><p>Manage your contact details, emergency contact, certifications and supporting documents in your profile. Review your winter availability and complete the required acknowledgments in onboarding.</p>
+{% if current_user.user_type == 'instructor' %}<p><a class="btn btn-primary" href="{{ url_for('staff_portal.profile') }}">Manage profile &amp; documents</a> <a class="btn btn-secondary" href="{{ url_for('staff_portal.onboarding_page') }}">Open onboarding progress</a></p>{% else %}<p><a href="{{ url_for('staff_portal.staff_admin') }}">Manage staff onboarding &amp; documents</a></p>{% endif %}
+<p>HR manages employment agreements, payroll and banking information through the resort’s approved HR process. Contact HR or your supervisor for access and instructions.</p>
+{% elif page.page == 12 %}
+<h2>ADP: scheduling and payroll</h2><p>ADP is the resort’s employee scheduling and payroll system. HR provides your employee number and access instructions.</p>
+<ul><li>Profile: review your details and add your photo.</li><li>Messages: check HR announcements and staff updates.</li><li>Pay statements: view available payment information.</li><li>Time card: review recorded clock-in and clock-out times; report discrepancies to your manager.</li><li>Schedule: view assigned shifts and the available time-off tools.</li></ul>
+<p>Snow School availability records your preferences; it does not replace your assigned ADP shifts.</p><p class="source-note">The source text export did not include the ADP screenshots. This text guide replaces the missing image callouts; HR can provide current ADP screens and instructions.</p>
+{% elif page.page == 38 %}
+<h2>Teaching resources</h2><p>Available school resources:</p><ul><li><a href="{{ url_for('learning.training') }}">Weekly training and teaching activities</a></li><li><a href="{{ url_for('learning.hub') }}">Teaching hub and assigned class progression records</a></li><li><a href="{{ url_for('learning.app_guide') }}">Snow School app training</a></li>{% if current_user.user_type == 'instructor' %}<li><a href="{{ url_for('staff_portal.onboarding_page') }}">School-approved SOPs and acknowledgments</a></li>{% else %}<li><a href="{{ url_for('staff_portal.staff_admin') }}">School SOP administration</a></li>{% endif %}</ul>
+<p>The original manual lists the following additional resources, but their destination links were not included in the supplied export:</p><ul><li>Ski Lesson Toolbox</li><li>Games</li><li>Snowboard Progressions — Red–Black</li><li>Ski Levels 1–2 and 3–5</li><li>School Groups SOP and ski competencies</li><li>Instructor Expectations</li><li>CASI and CSIA Codes of Ethics</li></ul><p class="source-note">Ask your supervisor for these resources until the current links are supplied.</p>
+{% else %}<div class="source-text">{{ page.text }}</div>{% endif %}
+</details>
+{% endif %}
+{% endfor %}
+{% endblock %}

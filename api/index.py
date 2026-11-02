@@ -37,6 +37,8 @@ def initialize_database():
                 os.environ.get('DEMO_PARENT_SEED_VERSION'),
                 os.environ.get('DEMO_PARENT_PASSWORD'),
             )
+            from review_demo import seed_review_demo
+            seed_review_demo(os.environ.get("APP_REVIEW_SEED_PASSWORD"))
             print("✓ Database tables created/verified without altering records")
             return True
             

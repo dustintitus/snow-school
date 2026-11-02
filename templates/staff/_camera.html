@@ -1,0 +1,12 @@
+<div class="camera-modal" data-camera-modal hidden data-csrf="{{ csrf_token }}">
+    <div class="camera-dialog" role="dialog" aria-modal="true" aria-labelledby="camera-title">
+        <div class="camera-heading"><div><p class="eyebrow">Private participant media</p><h3 id="camera-title">Capture photo or video</h3><p data-camera-student></p></div><button type="button" class="camera-close" aria-label="Close camera">×</button></div>
+        <div class="camera-preview"><video data-camera-video autoplay playsinline muted></video><canvas data-camera-canvas hidden></canvas><div class="camera-message" data-camera-message>Camera preview will appear here.</div></div>
+        <fieldset data-camera-participants><legend>Save for participants in this capture</legend>{% for student in students if media_consent[student.id] %}<label><input type="checkbox" name="capture_students" value="{{ student.id }}"> {{ student.full_name }}</label>{% endfor %}</fieldset>
+        <button type="button" class="btn btn-secondary" data-camera-record disabled>Record video (up to 15 seconds)</button>
+        <label class="camera-caption">Optional note<input type="text" maxlength="240" data-camera-caption placeholder="e.g. Strong parallel turns"></label>
+        <div class="camera-actions"><button type="button" class="btn btn-secondary" data-camera-cancel>Cancel</button><button type="button" class="btn btn-primary" data-camera-capture disabled>Capture & save</button></div>
+        <p class="camera-privacy">Uploads directly to private Snow School storage. The app does not add captures to this device’s camera roll. Videos have no audio. Select every participant visible in a group capture.</p>
+    </div>
+</div>
+

@@ -1,0 +1,82 @@
+/* Horseshoe Valley Resort brand board, supplied October 26, 2026.
+   Gotham is used when installed; licensed webfont files were not supplied. */
+.horseshoe-portal {
+  --hvr-red: #af3b28;
+  --hvr-blue: #193a43;
+  --hvr-orange: #d3852e;
+  --hvr-green: #61ab7e;
+  --hvr-sand: #f1d298;
+  --forest: var(--hvr-blue);
+  --forest-2: #244f5b;
+  --rust: var(--hvr-red);
+  --rust-dark: #8f2f20;
+  --cream: #f8f0e2;
+  --snow: #faf9f6;
+  --ink: #193a43;
+  --muted: #5b686b;
+  --line: #dedfd9;
+  --success: #32734c;
+  --shadow: 0 18px 55px rgba(25,58,67,.10);
+  --hvr-font: 'Gotham', 'DM Sans', Arial, sans-serif;
+  font-family: var(--hvr-font);
+  background: var(--snow);
+}
+.horseshoe-portal h1,.horseshoe-portal h2,.horseshoe-portal h3 {
+  font-family: var(--hvr-font);
+  font-weight: 900;
+  letter-spacing: -.02em;
+  line-height: 1.12;
+}
+.horseshoe-portal h1,.horseshoe-portal h2 {text-transform: uppercase}
+.horseshoe-portal .btn {font-family: var(--hvr-font);font-weight:700;letter-spacing:.04em}
+.horseshoe-portal .btn-primary {box-shadow:0 8px 22px rgba(175,59,40,.16)}
+.horseshoe-portal .utility-bar,.horseshoe-portal .site-footer {background:var(--hvr-blue)}
+.horseshoe-portal .navbar {height:112px;background:#fff;border-bottom:1px solid var(--line)}
+.horseshoe-portal .brand {gap:22px;flex-shrink:0}
+.horseshoe-resort-logo {display:block;width:110px;height:90px;object-fit:contain}
+.horseshoe-product-name {border-left:1px solid var(--line);padding-left:22px;font-size:1rem;font-weight:900;line-height:1.3;letter-spacing:.04em;text-transform:uppercase;color:var(--hvr-blue)}
+.horseshoe-product-name small {display:block;margin-top:5px;font-size:.6rem;font-weight:500;letter-spacing:.08em}
+.horseshoe-portal .eyebrow {font-family:var(--hvr-font);font-weight:700;letter-spacing:.04em}
+.horseshoe-portal .stat-card h3,.horseshoe-portal .score-value,.horseshoe-portal .program-average,.horseshoe-portal .evaluation-history-score {font-family:var(--hvr-font);font-weight:700}
+.horseshoe-portal .footer-inner strong {font-family:var(--hvr-font);font-weight:700}
+.horseshoe-portal .auth-card {border-top:4px solid var(--hvr-red);box-shadow:var(--shadow)}
+.horseshoe-portal .auth-card h2 {font-size:2.4rem}
+.horseshoe-portal .auth-container {min-height:58vh}
+.horseshoe-portal input:focus,.horseshoe-portal select:focus,.horseshoe-portal textarea:focus {outline:2px solid var(--hvr-blue);outline-offset:2px;border-color:var(--hvr-blue)}
+.horseshoe-portal .admin-sidebar nav a[aria-current=page] {background:var(--cream);color:var(--hvr-red);box-shadow:inset 3px 0 var(--hvr-red)}
+.horseshoe-portal .admin-sidebar nav a:hover {background:var(--cream)}
+.horseshoe-portal .admin-kpi {border-top-color:var(--hvr-red)}
+.horseshoe-portal .coach-welcome {background:var(--hvr-blue);border-top:4px solid var(--hvr-red)}
+.horseshoe-portal .coach-welcome .eyebrow {color:var(--hvr-sand)!important}
+.horseshoe-portal .coach-welcome>p:last-of-type {color:#e6edef}
+.horseshoe-portal .coach-week {background:var(--hvr-sand);color:var(--hvr-blue)}
+.horseshoe-portal .coach-focus {background:var(--cream)}
+.horseshoe-portal .coach-task-icon {background:#e5efe8;color:var(--hvr-blue)}
+.horseshoe-portal .coach-task-evaluation .coach-task-icon {background:var(--hvr-sand);color:var(--hvr-blue)}
+.horseshoe-portal .coach-task:hover {background:#f8f0e2}
+.horseshoe-portal .coach-bottom-nav a.active {color:var(--hvr-red)}
+.horseshoe-portal .badge-skier {background:#e5efe8;color:var(--hvr-blue)}
+.horseshoe-portal .badge-snowboarder {background:var(--hvr-sand);color:var(--hvr-blue)}
+.horseshoe-portal .parent-hero {background:var(--hvr-blue);border-top:4px solid var(--hvr-red)}
+@media(max-width:900px) {
+  .horseshoe-portal .nav-actions {gap:12px}
+  .horseshoe-portal .user-chip {display:none}
+}
+@media(max-width:650px) {
+  .horseshoe-portal .navbar {height:auto;min-height:98px}
+  .horseshoe-portal .nav-inner {flex-wrap:wrap;gap:10px;padding-block:10px}
+  .horseshoe-portal .brand {gap:12px}
+  .horseshoe-resort-logo {width:86px;height:70px}
+  .horseshoe-product-name {padding-left:12px;font-size:.8rem}
+  .horseshoe-product-name small {font-size:.5rem}
+  .horseshoe-portal .nav-actions {flex-wrap:wrap;gap:10px}
+  .horseshoe-portal .auth-card {padding:30px 24px}
+  .horseshoe-portal .auth-card h2 {font-size:2rem}
+  .horseshoe-portal.admin-app .admin-layout {min-height:calc(100vh - 98px)}
+}
+@media print {
+  .horseshoe-portal {background:#fff}
+  .horseshoe-portal .navbar {height:100px}
+}
+.horseshoe-portal .staff-links a {background:var(--cream)}
+.horseshoe-portal .onboarding-progress progress {accent-color:var(--hvr-red)}
