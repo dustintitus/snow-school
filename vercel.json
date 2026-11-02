@@ -19,5 +19,11 @@
       "path": "/api/cron/notifications",
       "schedule": "* * * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "release/production-baseline-2026-11-02": false,
+      "feature/program-supervisors-schema-only": false
+    }
+  }
 }
