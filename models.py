@@ -27,6 +27,16 @@ class Program(db.Model):
     def __repr__(self):
         return f'<Program {self.name}>'
 
+class ProgramSupervisor(db.Model):
+    """One supervisor per program; an instructor may supervise multiple programs."""
+    program_id = db.Column(db.Integer, db.ForeignKey('program.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    assigned_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    assigned_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    program = db.relationship('Program', backref=db.backref('supervision', uselist=False, cascade='all, delete-orphan'))
+    supervisor = db.relationship('User', foreign_keys=[user_id])
+
+
 class ProgramProfile(db.Model):
     """Catalogue and planning details that extend the legacy program record."""
     id = db.Column(db.Integer, primary_key=True)

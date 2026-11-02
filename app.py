@@ -3,7 +3,7 @@ import secrets
 from flask import Flask, render_template, request, redirect, url_for, flash, session, abort, make_response, jsonify, g
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, AppSetting, User, ParentStudent, MediaConsent, ParticipantMedia, Evaluation, Program, ProgramProfile, Enrollment, CurriculumLevel, CurriculumSkill, Team, Attendance, ClassSession
+from models import ProgramSupervisor, db, AppSetting, User, ParentStudent, MediaConsent, ParticipantMedia, Evaluation, Program, ProgramProfile, Enrollment, CurriculumLevel, CurriculumSkill, Team, Attendance, ClassSession
 from vercel.blob import BlobClient
 from datetime import UTC, datetime, date, timedelta
 from config import config
@@ -88,6 +88,15 @@ def instructor_owns_team(team):
     from learning import today
     # Access expires with the coverage day, even if a historical date is requested.
     return current_user.is_authenticated and current_user.user_type == 'instructor' and daily_instructor(team, today()) == current_user.id
+
+def supervised_teams_for_current_user():
+    from staff_portal import active_staff
+    if not current_user.is_authenticated or current_user.user_type != 'instructor' or not active_staff(current_user.id):
+        return []
+    return Team.query.filter(Team.program_id.in_(
+        db.session.query(ProgramSupervisor.program_id).filter_by(user_id=current_user.id)
+    )).order_by(Team.program_id, Team.name).all()
+
 
 def instructor_can_access_student(student):
     """Team ownership is authoritative; instructor_id remains a legacy fallback."""
@@ -1140,6 +1149,7 @@ def coach_today():
     from operations import assigned_teams
     from learning_models import PrivateLesson
     teams = assigned_teams(current_user.id, selected_date)
+    supervised_teams = supervised_teams_for_current_user()
     lessons = PrivateLesson.query.filter(PrivateLesson.instructor_id == current_user.id, PrivateLesson.starts_at >= datetime.combine(selected_date, datetime.min.time()), PrivateLesson.starts_at < datetime.combine(selected_date + timedelta(days=1), datetime.min.time())).order_by(PrivateLesson.starts_at).all()
     cards = []
     for team in teams:
@@ -1158,7 +1168,7 @@ def coach_today():
     school_ids = {row.team_id for row in SchoolGroup.query.all()}
     progress = onboarding(current_user.id)
     db.session.commit()
-    return render_template('coach_today.html', cards=cards, selected_date=selected_date, lessons=lessons, school_ids=school_ids, progress=progress)
+    return render_template('coach_today.html', cards=cards, supervised_teams=supervised_teams, selected_date=selected_date, lessons=lessons, school_ids=school_ids, progress=progress)
 
 @app.route('/teams/<int:team_id>/lesson-plan')
 @login_required
@@ -1630,7 +1640,59 @@ def manage_programs():
     programs = Program.query.order_by(Program.name).all()
     dashboard_data = build_admin_dashboard()
     from coaching import evaluation_weeks
-    return render_template('manage_programs.html', evaluation_weeks=evaluation_weeks, programs=programs, dashboard_data=dashboard_data, current_season=CURRENT_SEASON)
+    from staff_portal import active_staff
+    supervisors = [user for user in User.query.filter_by(user_type='instructor').order_by(User.full_name).all() if active_staff(user.id)]
+    return render_template('manage_programs.html', evaluation_weeks=evaluation_weeks, supervisors=supervisors, programs=programs, dashboard_data=dashboard_data, current_season=CURRENT_SEASON)
+
+@app.route('/admin/programs/<int:program_id>/supervisor', methods=['POST'])
+@login_required
+def assign_program_supervisor(program_id):
+    if not is_admin():
+        abort(403)
+    program = db.get_or_404(Program, program_id)
+    raw_id = request.form.get('supervisor_id', '').strip()
+    assignment = db.session.get(ProgramSupervisor, program.id)
+    if raw_id:
+        if not raw_id.isdecimal():
+            abort(400)
+        supervisor = db.session.get(User, int(raw_id))
+        from staff_portal import active_staff
+        if not supervisor or supervisor.user_type != 'instructor' or not active_staff(supervisor.id):
+            abort(400, description='Choose an active instructor account.')
+        if assignment is None:
+            assignment = ProgramSupervisor(program_id=program.id)
+            db.session.add(assignment)
+        assignment.user_id = supervisor.id
+        assignment.assigned_by = current_user.id
+        assignment.assigned_at = datetime.now(UTC)
+    elif assignment:
+        db.session.delete(assignment)
+    db.session.commit()
+    flash('Program supervisor updated.', 'success')
+    return redirect(url_for('manage_programs'))
+
+
+@app.route('/coach/supervision/classes/<int:team_id>')
+@login_required
+def supervised_class(team_id):
+    # This is deliberately separate from instructor workspaces: visibility never
+    # becomes an ownership check or a permission to mutate learner records.
+    team = db.get_or_404(Team, team_id)
+    assignment = db.session.get(ProgramSupervisor, team.program_id)
+    from staff_portal import active_staff
+    if current_user.user_type != 'instructor' or not active_staff(current_user.id) or not assignment or assignment.user_id != current_user.id:
+        abort(403)
+    from learning import today
+    try:
+        selected_date = parse_session_date(request.args.get('date'), fallback=today())
+    except ValueError:
+        abort(400)
+    records = Attendance.query.filter_by(team_id=team.id, session_date=selected_date).all()
+    return render_template('supervised_class.html', team=team,
+                           selected_date=selected_date,
+                           attendance={row.student_id: row for row in records},
+                           class_session=ClassSession.query.filter_by(team_id=team.id, session_date=selected_date).first())
+
 
 @app.route('/admin/teams')
 @login_required

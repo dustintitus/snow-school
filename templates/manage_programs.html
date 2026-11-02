@@ -30,7 +30,14 @@
 {% for program in programs %}{% set profile = program.profile %}
 <article class="program-admin-card {{ '' if profile and profile.is_active else 'is-inactive' }}">
     <div class="program-card-top"><span class="badge">{{ profile.category if profile else 'Legacy program' }}</span><span class="program-status">{{ 'Active' if profile and profile.is_active else 'Inactive' }}</span></div>
-    <h3>{{ program.name }}</h3><p>{{ program.description or 'No description added.' }}</p>
+    <h3>{{ program.name }}</h3>
+    <form method="POST" action="{{ url_for('assign_program_supervisor', program_id=program.id) }}">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+      <label for="supervisor-{{ program.id }}">Program supervisor (read-only)</label>
+      <select id="supervisor-{{ program.id }}" name="supervisor_id"><option value="">Unassigned</option>
+      {% for person in supervisors %}<option value="{{ person.id }}" {% if program.supervision and program.supervision.user_id == person.id %}selected{% endif %}>{{ person.full_name }}</option>{% endfor %}</select>
+      <button class="btn btn-sm btn-secondary" type="submit">Save supervisor</button>
+    </form><p>{{ program.description or 'No description added.' }}</p>
     <div class="program-facts">
         <div><span>Audience</span><strong>{% if profile and profile.age_min is not none %}Ages {{ profile.age_min }}{% if profile.age_max is not none %}–{{ profile.age_max }}{% else %}+{% endif %}{% else %}All ages{% endif %}</strong></div>
         <div><span>Format</span><strong>{{ profile.duration_label if profile and profile.duration_label else program.frequency_value ~ ' sessions' }}</strong></div>

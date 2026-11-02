@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }} · Supervision{% endblock %}
+{% block content %}
+<div class="card"><p class="eyebrow">Program supervision · Read-only</p>
+<h2>{{ team.name }}</h2><p>{{ team.program.name }} · Coach: {{ team.instructor.full_name }}</p>
+<form method="GET"><label for="date">Session date</label><input id="date" name="date" type="date" value="{{ selected_date.isoformat() }}"><button class="btn btn-secondary">View</button></form>
+<p>Status: {{ class_session.status_label if class_session else 'Not started' }}</p>
+{% if class_session and class_session.meeting_point %}<p>Meeting point: {{ class_session.meeting_point }}</p>{% endif %}
+<h3>Class roster and attendance</h3>
+<ul>{% for student in team.participants %}{% set record = attendance.get(student.id) %}<li>{{ student.full_name }} · {{ ('Present' if record.attended else 'Absent') if record else 'Not recorded' }}</li>{% else %}<li>No participants assigned.</li>{% endfor %}</ul>
+<a href="{{ url_for('coach_today', date=selected_date.isoformat()) }}">Back to Coach</a></div>
+{% endblock %}

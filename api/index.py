@@ -1,53 +1,25 @@
-"""
-Vercel serverless function entry point in api/ directory
-"""
+"""Vercel entry point: production startup creates schema, never demo records."""
 import sys
 import os
 from pathlib import Path
 
-# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-# Set environment
 os.environ['FLASK_ENV'] = 'production'
 
-# Import the Flask app
-from app import app, db, seed_demo_accounts, seed_demo_parent, seed_demo_operations, seed_horseshoe_catalogue, seed_horseshoe_showcase, seed_step_rip_curriculum
+from app import app, db
 
-# Initialize database on cold start (production-safe)
+
 def initialize_database():
-    """Create missing tables without mutating existing production records."""
+    """Add missing tables only; catalogue/account/demo seeding is explicit work."""
     try:
         with app.app_context():
-            # Create all tables
             db.create_all()
-            seed_horseshoe_catalogue()
-            seed_step_rip_curriculum()
-            seed_demo_operations()
-            seed_horseshoe_showcase()
-            seed_demo_accounts(
-                os.environ.get('DEMO_ACCOUNT_SEED_VERSION'),
-                {
-                    'admin': os.environ.get('DEMO_ADMIN_PASSWORD'),
-                    'instructor1': os.environ.get('DEMO_INSTRUCTOR_PASSWORD'),
-                    'student1': os.environ.get('DEMO_STUDENT_PASSWORD'),
-                },
-            )
-            seed_demo_parent(
-                os.environ.get('DEMO_PARENT_SEED_VERSION'),
-                os.environ.get('DEMO_PARENT_PASSWORD'),
-            )
-            from review_demo import seed_review_demo
-            seed_review_demo(os.environ.get("APP_REVIEW_SEED_PASSWORD"))
-            print("✓ Database tables created/verified without altering records")
-            return True
-            
-    except Exception as e:
-        print(f"Database initialization error: {e}")
-        return False
+    except Exception:
+        app.logger.error('Production schema initialization failed')
+        raise RuntimeError('Production schema initialization failed') from None
+    app.logger.info('Production schema verified; no seed routines executed')
+    return True
 
-# Initialize database
+
 initialize_database()
-
-# Export the app for Vercel (@vercel/python handler expects 'app')
 __all__ = ['app']

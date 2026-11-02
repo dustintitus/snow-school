@@ -10,6 +10,7 @@
 </header>
 {% include "staff/_progress.html" %}
 {% include "staff/_nav.html" %}
+{% include 'staff/_supervision.html' %}
 {% for section, is_school in [('Classes', false), ('School Groups', true)] %}
 {% set section_cards = [] %}{% for card in cards if (card.team.id in school_ids)==is_school %}{% set _ = section_cards.append(card) %}{% endfor %}
 <div class="coach-section-title"><div><p class="eyebrow">{{ selected_date.strftime('%A, %B %d') }}</p><h3>{{ section }}</h3></div><span class="coach-count">{{ section_cards|length }} assigned</span></div>

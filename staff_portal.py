@@ -227,7 +227,8 @@ def classes():
     teams = Team.query.filter(db.or_(Team.instructor_id == current_user.id, Team.id.in_([c.team_id for c in coverage]))).order_by(Team.name).all()
     school_ids = {g.team_id for g in SchoolGroup.query.all()}
     lessons = PrivateLesson.query.filter_by(instructor_id=current_user.id).order_by(PrivateLesson.starts_at.desc()).all()
-    return render_template('staff/classes.html', teams=teams, school_ids=school_ids, lessons=lessons, coverage=coverage)
+    from app import supervised_teams_for_current_user
+    return render_template('staff/classes.html', supervised_teams=supervised_teams_for_current_user(), selected_date=today(), teams=teams, school_ids=school_ids, lessons=lessons, coverage=coverage)
 
 
 @bp.route('/coach/profile', methods=['GET', 'POST'])
